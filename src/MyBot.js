@@ -18,7 +18,7 @@ network.on('map', (gameMap, id) => {
       const site = gameMap.getSite(loc);
 
 
-      if (site.owner === id && site.strength>5) {
+      if (site.owner === id && site.strength>50) {
         const front = closestFront(site)
         moves.push(new Move(loc, front));
       }
@@ -41,8 +41,6 @@ function closestFront(site){
   let closestDistance = site.fronts.north;
 
   _.each(site.fronts, function(value, key){
-                log(value, closestDistance)
-
     if(value < closestDistance){
       closestDistance = value;
       closestFront = key;
@@ -54,46 +52,57 @@ function closestFront(site){
 
 
 // Calculate distance of each front for each square
+// First loop finds gray square Location
+// Secon lop finds distance to gray square
 function setSiteFronts(gameMap, id){
   let frontDist=0;
   let site;
+  const doubleHeight = gameMap.height*2;
+  const doubleWidth = gameMap.width*2;
+  const {height, width} = gameMap;
 
-  for (let y = 0; y < gameMap.height; y++) {
-    frontDist = 0;
-    for (let x = 0; x < gameMap.width; x++) {
-      site = gameMap.contents[y][x];
+  for (let y = 0; y < doubleHeight; y++) {
+    frontDist = Infinity;
+    for (let x = 0; x < doubleWidth; x++) {
+      site = getSite(gameMap, x, y);
       frontDist = site.owner===id ? frontDist+1 : 0;
-      gameMap.contents[y][x].fronts = {west: frontDist}
+      site.fronts = {west: frontDist}
     }
-
-    frontDist = 0;
-    for (let x = gameMap.width-1; x>=0; x--) {
-      site = gameMap.contents[y][x];
+    frontDist = Infinity;
+    for (let x = doubleWidth-1; x>=0; x--) {
+      site = getSite(gameMap, x, y);
       frontDist = site.owner===id ? frontDist+1 : 0;
-      gameMap.contents[y][x].fronts.east = frontDist
+      site.fronts.east = frontDist
     }
   }
 
-  for (let x = 0; x < gameMap.width; x++) {
-    frontDist = 0;
-    for (let y = 0; y < gameMap.width; y++) {
-      site = gameMap.contents[y][x];
+  for (let x = 0; x < doubleWidth; x++) {
+    frontDist = Infinity;
+    for (let y = 0; y < doubleHeight; y++) {
+      site = getSite(gameMap, x, y);
       frontDist = site.owner===id ? frontDist+1 : 0;
-      gameMap.contents[y][x].fronts.north = frontDist
+      site.fronts.north = frontDist
     }
-
-    frontDist = 0;
-    for (let y = gameMap.width-1; y>=0; y--) {
-      site = gameMap.contents[y][x];
+    frontDist = Infinity;
+    for (let y = doubleHeight-1; y>=0; y--) {
+      site = getSite(gameMap, x, y);
       frontDist = site.owner===id ? frontDist+1 : 0;
-      gameMap.contents[y][x].fronts.south = frontDist
+      site.fronts.south = frontDist
     }
-
   }
-
 
 }
 
+// Wraps around
+function getSite(gameMap, x, y){
+  if(x >= gameMap.width){
+    x = x-gameMap.width;
+  }
+  if(y >= gameMap.height){
+    y = y-gameMap.height;
+  }
+  return gameMap.contents[y][x];
+}
 
 function eachPerimeter(iteratee){
 

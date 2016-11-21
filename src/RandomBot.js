@@ -16,7 +16,7 @@ network.on('map', (gameMap, id) => {
       const loc = { x, y };
       const site = gameMap.getSite(loc);
 
-      if (site.owner === id && site.strength>4) {
+      if (site.owner === id && site.strength>50) {
         moves.push(new Move(loc, Math.floor(Math.random() * 5)));
       }
     }

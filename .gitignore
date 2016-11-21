@@ -3,3 +3,5 @@ log
 *.hlt
 HaliteEnvironment-Source
 node_modules
+dist
+*.log

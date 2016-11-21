@@ -1,12 +1,14 @@
-
 const fs = require('fs')
+const path = require('path')
+const logFilePath = path.resolve(__dirname, '../debug.log')
+
 
 const log = function(text){
   return new Promise(function(resolve, reject){
   	if(typeof text === 'object'){
   		text = JSON.stringify(text, null, '    ');
   	}
-    fs.appendFile('./log', text+'\n', function(err){
+    fs.appendFile(logFilePath, text+'\n', function(err){
       if(err){reject()}
       resolve();
     })
@@ -14,7 +16,7 @@ const log = function(text){
 }
 
 let promise = new Promise(function(resolve, reject){
-	fs.writeFile('./log', '', function(err){
+	fs.writeFile(logFilePath, '', function(err){
       if(err){reject()}
       resolve();
 	})
