@@ -3,6 +3,9 @@ const fs = require('fs')
 
 const log = function(text){
   return new Promise(function(resolve, reject){
+  	if(typeof text === 'object'){
+  		text = JSON.stringify(text, null, '    ');
+  	}
     fs.appendFile('./log', text+'\n', function(err){
       if(err){reject()}
       resolve();

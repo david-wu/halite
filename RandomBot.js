@@ -1,9 +1,12 @@
 const {
   Move,
 } = require('./hlt');
+
+const log = require('./log.js')
+
 const Networking = require('./networking');
 
-const network = new Networking('RandomJavaScriptBot');
+const network = new Networking('MyJavaScriptBot');
 
 network.on('map', (gameMap, id) => {
   const moves = [];
@@ -11,8 +14,9 @@ network.on('map', (gameMap, id) => {
   for (let y = 0; y < gameMap.height; y++) {
     for (let x = 0; x < gameMap.width; x++) {
       const loc = { x, y };
-      const { owner } = gameMap.getSite(loc);
-      if (owner === id) {
+      const site = gameMap.getSite(loc);
+
+      if (site.owner === id && site.strength>4) {
         moves.push(new Move(loc, Math.floor(Math.random() * 5)));
       }
     }
@@ -20,3 +24,5 @@ network.on('map', (gameMap, id) => {
 
   network.sendMoves(moves);
 });
+
+
