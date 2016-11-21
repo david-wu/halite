@@ -38,11 +38,11 @@ const frontIndices = {
 function closestFront(site){
 
   let closestFront = 'north';
-  let closestDistance = site.fronts.north;
+  let closestDistance = site.fronts.north.distance;
 
-  _.each(site.fronts, function(value, key){
-    if(value < closestDistance){
-      closestDistance = value;
+  _.each(site.fronts, function(front, key){
+    if(front.distance < closestDistance){
+      closestDistance = front.distance;
       closestFront = key;
     }
   })
@@ -50,44 +50,116 @@ function closestFront(site){
   return frontIndices[closestFront];
 }
 
+function inBetweenSites(loc1, loc2){
+  const inBetweenSites = [];
+  
+  return inBetweenSites;
+}
+
+function sumSiteStrengths(sites){
+  return _.reduce(sites, function(memo, site){
+    return memo + site.strength
+  }, 0)
+}
+
+
+function initSites(gameMap, myId){
+  let site;
+  const {height, width} = gameMap;
+  for (let y=0; y<height; y++){
+    for (let x=0; x<width; x++){
+      site = gameMap.contents[y][x];
+      site.fronts = {
+        north: {},
+        east: {},
+        south: {},
+        west: {}
+      }
+
+      if(site.owner===myId){
+        site.isMine = true;
+      }
+    }
+  }
+}
 
 // Calculate distance of each front for each square
 // First loop finds gray square Location
-// Secon lop finds distance to gray square
+// Second lop finds distance to gray square
 function setSiteFronts(gameMap, id){
-  let frontDist=0;
+
+  initSites(gameMap, id);
+  setXFronts(gameMap);
+  setYFronts(gameMap);
+}
+
+
+function setXFronts(gameMap){
   let site;
+  let frontDist;
   const doubleHeight = gameMap.height*2;
   const doubleWidth = gameMap.width*2;
-  const {height, width} = gameMap;
 
   for (let y = 0; y < doubleHeight; y++) {
     frontDist = Infinity;
     for (let x = 0; x < doubleWidth; x++) {
       site = getSite(gameMap, x, y);
-      frontDist = site.owner===id ? frontDist+1 : 0;
-      site.fronts = {west: frontDist}
+      if(site.isMine){
+        frontDist = frontDist+1;
+      }else{
+        frontDist = 0;
+        frontStrength += site.strength;
+      } 
+      _.extend(site.fronts.west, {
+        distance: frontDist,
+        site: site,
+        x: x,
+        y: y
+      });
     }
     frontDist = Infinity;
     for (let x = doubleWidth-1; x>=0; x--) {
       site = getSite(gameMap, x, y);
-      frontDist = site.owner===id ? frontDist+1 : 0;
-      site.fronts.east = frontDist
+      frontDist = site.isMine ? frontDist+1 : 0;
+      _.extend(site.fronts.east, {
+        distance: frontDist,
+        site: site,
+        x: x,
+        y: y
+      });
     }
   }
+
+}
+
+function setYFronts(gameMap){
+  let site;
+  let frontDist;
+  const doubleHeight = gameMap.height*2;
+  const doubleWidth = gameMap.width*2;
 
   for (let x = 0; x < doubleWidth; x++) {
     frontDist = Infinity;
     for (let y = 0; y < doubleHeight; y++) {
       site = getSite(gameMap, x, y);
-      frontDist = site.owner===id ? frontDist+1 : 0;
-      site.fronts.north = frontDist
+      frontDist = site.isMine ? frontDist+1 : 0;
+      _.extend(site.fronts.north, {
+        distance: frontDist,
+        site: site,
+        x: x,
+        y: y
+      });
     }
     frontDist = Infinity;
     for (let y = doubleHeight-1; y>=0; y--) {
       site = getSite(gameMap, x, y);
-      frontDist = site.owner===id ? frontDist+1 : 0;
-      site.fronts.south = frontDist
+      frontDist = site.isMine ? frontDist+1 : 0;
+      _.extend(site.fronts.south, {
+        distance: frontDist,
+        site: site,
+        x: x,
+        y: y
+      });
     }
   }
 
