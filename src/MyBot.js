@@ -24,9 +24,9 @@ network.on('map', (gameMap, id) => {
     _.each(site.fronts, function(front, key){
       front.key = key;
 
-      front.efficiency = (front.production+1) / (front.strength + (10*front.distanceTo) );
+      front.efficiency = (front.production+5) / (front.strength + (5*front.distanceTo) );
 
-      if(site.strength + front.productionTo > 200){
+      if(site.strength + front.productionTo > 150){
         front.canCapture = true;
       }else{
         front.canCapture = front.strength < (front.productionTo+front.strengthTo);
@@ -53,17 +53,6 @@ const frontIndices = {
   east: 2,
   south: 3,
   west: 4,
-}
-function closestFront(site){
-  let closestFront = site.fronts.north;
-  let closestDistance = site.fronts.north.distanceTo;
-  _.each(site.fronts, function(front, key){
-    if(front.distanceTo < closestDistance){
-      closestDistance = front.distanceTo;
-      closestFront = front;
-    }
-  })
-  return closestFront;
 }
 
 
