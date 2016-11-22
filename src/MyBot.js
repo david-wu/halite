@@ -17,23 +17,20 @@ network.on('map', (gameMap, id) => {
 
   gameMap.eachMySites(function(site){
 
-    if(site.strength < 2*site.production){
+    if(site.strength < 3*site.production){
       return;
     }
 
+
     _.each(site.fronts, function(front, key){
       front.key = key;
-
-      front.efficiency = (front.production+5) / (front.strength + (5*front.distanceTo) );
-
-      if(site.strength + front.productionTo > 150){
+      front.efficiency = (front.production+5) / ((front.strength + Math.pow(front.distanceTo,2))/2);
+      if(site.strength+front.strengthTo+front.productionTo >= 250){
         front.canCapture = true;
       }else{
         front.canCapture = front.strength < (front.productionTo+front.strengthTo);
       }
-
     })
-
 
     const frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
     const mostEfficientFront = _.last(frontsByEfficiency);
@@ -41,11 +38,11 @@ network.on('map', (gameMap, id) => {
       const frontIndex = frontIndices[mostEfficientFront.key]
       moves.push(new Move({x: site.x, y:site.y}, frontIndex));
     }
-
   })
 
   network.sendMoves(moves);
 });
+
 
 
 const frontIndices = {
@@ -73,7 +70,7 @@ function setXFronts(gameMap){
   for(let y=0; y<doubleHeight; y++){
 
     setFrontState(frontState);
-    frontState.distanceTo = gameMap.width;
+    frontState.distanceTo = Infinity;
     for(let x=0; x<doubleWidth; x++){
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
@@ -81,7 +78,7 @@ function setXFronts(gameMap){
     }
 
     setFrontState(frontState);
-    frontState.distanceTo = gameMap.width;
+    frontState.distanceTo = Infinity;
     for (let x = doubleWidth-1; x>=0; x--) {
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
@@ -99,7 +96,7 @@ function setYFronts(gameMap){
   for(let x=0; x<doubleHeight; x++){
 
     setFrontState(frontState);
-    frontState.distanceTo = gameMap.height;
+    frontState.distanceTo = Infinity;
     for(let y=0; y<doubleWidth; y++){
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
@@ -107,7 +104,7 @@ function setYFronts(gameMap){
     }
 
     setFrontState(frontState);
-    frontState.distanceTo = gameMap.height;
+    frontState.distanceTo = Infinity;
     for (let y = doubleWidth-1; y>=0; y--) {
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
@@ -118,10 +115,15 @@ function setYFronts(gameMap){
 
 function setFrontState(frontState={}, site={}){
     if(site.isMine){
+      // frontState.hostility = 0
       frontState.distanceTo = frontState.distanceTo+1;
       frontState.strengthTo = frontState.strengthTo+site.strength;
       frontState.productionTo = frontState.productionTo+(site.production*(frontState.distanceTo-1));
     }else{
+
+      if(site.owner > 0){
+        frontState.hostility++
+      }
       frontState.strength = site.strength || 0
       frontState.production = site.production || 0
       frontState.pos = {

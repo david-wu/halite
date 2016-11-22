@@ -144,17 +144,24 @@ class GameMap {
       y %= this.height;
     }
 
-    return { x, y };
-  }
-
-  getSite(l, direction = STILL) {
-    let { x, y } = this.getLocation(l, direction);
     while(x >= this.width){
       x = x-this.width;
     }
     while(y >= this.height){
       y = y-this.height;
     }
+
+    return { x, y };
+  }
+
+  getSite(l, direction = STILL) {
+    let { x, y } = this.getLocation(l, direction);
+    // while(x >= this.width){
+    //   x = x-this.width;
+    // }
+    // while(y >= this.height){
+    //   y = y-this.height;
+    // }
     return this.contents[y][x];
   }
 }

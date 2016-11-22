@@ -4,3 +4,4 @@ log
 Visualizer
 node_modules
 *.log
+*.zip
