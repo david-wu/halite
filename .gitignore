@@ -3,5 +3,4 @@ log
 *.hlt
 Visualizer
 node_modules
-dist
 *.log

@@ -17,7 +17,7 @@ network.on('map', (gameMap, id) => {
 
   gameMap.eachMySites(function(site){
 
-    if(site.strength < 5*site.production){
+    if(site.strength < 2*site.production){
       return;
     }
 
