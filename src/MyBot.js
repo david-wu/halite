@@ -4,26 +4,45 @@ const {
 
 const _ = require('lodash');
 const Networking = require('./networking');
-const log = require('./log.js')
+// const log = require('./log.js')
 
-const network = new Networking('MyJavaScriptBot');
+const network = new Networking('MyBot');
 
 network.on('map', (gameMap, id) => {
   const moves = [];
+
+  gameMap.initSites();
+
   setSiteFronts(gameMap, id);
 
-  for (let y = 0; y < gameMap.height; y++) {
-    for (let x = 0; x < gameMap.width; x++) {
-      const loc = { x, y };
-      const site = gameMap.getSite(loc);
+  gameMap.eachMySites(function(site){
 
-
-      if (site.owner === id && site.strength>50) {
-        const front = closestFront(site)
-        moves.push(new Move(loc, front));
-      }
+    if(site.strength < 5*site.production){
+      return;
     }
-  }
+
+    _.each(site.fronts, function(front, key){
+      front.key = key;
+
+      front.efficiency = (front.production+1) / (front.strength + (10*front.distanceTo) );
+
+      if(site.strength + front.productionTo > 200){
+        front.canCapture = true;
+      }else{
+        front.canCapture = front.strength < (front.productionTo+front.strengthTo);
+      }
+
+    })
+
+
+    const frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
+    const mostEfficientFront = _.last(frontsByEfficiency);
+    if(mostEfficientFront && mostEfficientFront.canCapture){
+      const frontIndex = frontIndices[mostEfficientFront.key]
+      moves.push(new Move({x: site.x, y:site.y}, frontIndex));
+    }
+
+  })
 
   network.sendMoves(moves);
 });
@@ -36,145 +55,97 @@ const frontIndices = {
   west: 4,
 }
 function closestFront(site){
-
-  let closestFront = 'north';
-  let closestDistance = site.fronts.north.distance;
-
+  let closestFront = site.fronts.north;
+  let closestDistance = site.fronts.north.distanceTo;
   _.each(site.fronts, function(front, key){
-    if(front.distance < closestDistance){
-      closestDistance = front.distance;
-      closestFront = key;
+    if(front.distanceTo < closestDistance){
+      closestDistance = front.distanceTo;
+      closestFront = front;
     }
   })
-
-  return frontIndices[closestFront];
-}
-
-function inBetweenSites(loc1, loc2){
-  const inBetweenSites = [];
-  
-  return inBetweenSites;
-}
-
-function sumSiteStrengths(sites){
-  return _.reduce(sites, function(memo, site){
-    return memo + site.strength
-  }, 0)
+  return closestFront;
 }
 
 
-function initSites(gameMap, myId){
-  let site;
-  const {height, width} = gameMap;
-  for (let y=0; y<height; y++){
-    for (let x=0; x<width; x++){
-      site = gameMap.contents[y][x];
-      site.fronts = {
-        north: {},
-        east: {},
-        south: {},
-        west: {}
-      }
-
-      if(site.owner===myId){
-        site.isMine = true;
-      }
-    }
-  }
-}
-
-// Calculate distance of each front for each square
+// Double Iteration on all squares
 // First loop finds gray square Location
 // Second lop finds distance to gray square
 function setSiteFronts(gameMap, id){
-
-  initSites(gameMap, id);
   setXFronts(gameMap);
   setYFronts(gameMap);
 }
 
-
 function setXFronts(gameMap){
   let site;
-  let frontDist;
   const doubleHeight = gameMap.height*2;
   const doubleWidth = gameMap.width*2;
 
-  for (let y = 0; y < doubleHeight; y++) {
-    frontDist = Infinity;
-    for (let x = 0; x < doubleWidth; x++) {
-      site = getSite(gameMap, x, y);
-      if(site.isMine){
-        frontDist = frontDist+1;
-      }else{
-        frontDist = 0;
-        frontStrength += site.strength;
-      } 
-      _.extend(site.fronts.west, {
-        distance: frontDist,
-        site: site,
-        x: x,
-        y: y
-      });
+  const frontState = setFrontState();
+  for(let y=0; y<doubleHeight; y++){
+
+    setFrontState(frontState);
+    frontState.distanceTo = gameMap.width;
+    for(let x=0; x<doubleWidth; x++){
+      site = gameMap.getSite({x,y});
+      setFrontState(frontState, site);
+      _.extend(site.fronts.west, frontState);
     }
-    frontDist = Infinity;
+
+    setFrontState(frontState);
+    frontState.distanceTo = gameMap.width;
     for (let x = doubleWidth-1; x>=0; x--) {
-      site = getSite(gameMap, x, y);
-      frontDist = site.isMine ? frontDist+1 : 0;
-      _.extend(site.fronts.east, {
-        distance: frontDist,
-        site: site,
-        x: x,
-        y: y
-      });
+      site = gameMap.getSite({x,y});
+      setFrontState(frontState, site);
+      _.extend(site.fronts.east, frontState);
     }
   }
-
 }
 
 function setYFronts(gameMap){
   let site;
-  let frontDist;
   const doubleHeight = gameMap.height*2;
   const doubleWidth = gameMap.width*2;
 
-  for (let x = 0; x < doubleWidth; x++) {
-    frontDist = Infinity;
-    for (let y = 0; y < doubleHeight; y++) {
-      site = getSite(gameMap, x, y);
-      frontDist = site.isMine ? frontDist+1 : 0;
-      _.extend(site.fronts.north, {
-        distance: frontDist,
-        site: site,
-        x: x,
-        y: y
-      });
+  const frontState = setFrontState();
+  for(let x=0; x<doubleHeight; x++){
+
+    setFrontState(frontState);
+    frontState.distanceTo = gameMap.height;
+    for(let y=0; y<doubleWidth; y++){
+      site = gameMap.getSite({x,y});
+      setFrontState(frontState, site);
+      _.extend(site.fronts.north, frontState);
     }
-    frontDist = Infinity;
-    for (let y = doubleHeight-1; y>=0; y--) {
-      site = getSite(gameMap, x, y);
-      frontDist = site.isMine ? frontDist+1 : 0;
-      _.extend(site.fronts.south, {
-        distance: frontDist,
-        site: site,
-        x: x,
-        y: y
-      });
+
+    setFrontState(frontState);
+    frontState.distanceTo = gameMap.height;
+    for (let y = doubleWidth-1; y>=0; y--) {
+      site = gameMap.getSite({x,y});
+      setFrontState(frontState, site);
+      _.extend(site.fronts.south, frontState);
     }
   }
-
 }
 
-// Wraps around
-function getSite(gameMap, x, y){
-  if(x >= gameMap.width){
-    x = x-gameMap.width;
-  }
-  if(y >= gameMap.height){
-    y = y-gameMap.height;
-  }
-  return gameMap.contents[y][x];
+function setFrontState(frontState={}, site={}){
+    if(site.isMine){
+      frontState.distanceTo = frontState.distanceTo+1;
+      frontState.strengthTo = frontState.strengthTo+site.strength;
+      frontState.productionTo = frontState.productionTo+(site.production*(frontState.distanceTo-1));
+    }else{
+      frontState.strength = site.strength || 0
+      frontState.production = site.production || 0
+      frontState.pos = {
+        x: site.x,
+        y: site.y,
+      }
+      frontState.distanceTo = 0
+      frontState.strengthTo = 0
+      frontState.productionTo = 0
+    }
+    return frontState;
 }
+
 
 function eachPerimeter(iteratee){
 

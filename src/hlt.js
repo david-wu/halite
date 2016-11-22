@@ -33,18 +33,50 @@ class Move {
 }
 
 class GameMap {
-  constructor(width = 0, height = 0, numberOfPlayers = 0) {
+  constructor(myId, width=0, height=0, numberOfPlayers=0) {
+    this.myId = myId;
     this.width = width;
     this.height = height;
     this.numberOfPlayers = numberOfPlayers;
     this.contents = [];
 
-    for (let y = 0; y < this.height; y++) {
+    for(let y = 0; y < this.height; y++){
       const row = [];
-      for (let x = 0; x < this.width; x++) {
+      for(let x = 0; x < this.width; x++){
         row.push(new Site(0, 0, 0));
       }
       this.contents.push(row);
+    }
+
+    // this.initSites();
+  }
+
+  initSites(){
+    let site;
+    for(let y=0; y<this.height; y++){
+      for(let x=0; x<this.width; x++){
+        site = this.contents[y][x];
+        site.x = x;
+        site.y = y;
+        site.isMine = site.owner===this.myId;
+        site.fronts = {
+          north: {},
+          east: {},
+          south: {},
+          west: {}
+        }
+      }
+    }
+  }
+
+  eachMySites(iteratee){
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        const site = this.getSite({x,y});
+        if(site.isMine){
+          iteratee(site);
+        }
+      }
     }
   }
 
@@ -116,7 +148,13 @@ class GameMap {
   }
 
   getSite(l, direction = STILL) {
-    const { x, y } = this.getLocation(l, direction);
+    let { x, y } = this.getLocation(l, direction);
+    while(x >= this.width){
+      x = x-this.width;
+    }
+    while(y >= this.height){
+      y = y-this.height;
+    }
     return this.contents[y][x];
   }
 }

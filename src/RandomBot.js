@@ -6,7 +6,7 @@ const log = require('./log.js')
 
 const Networking = require('./networking');
 
-const network = new Networking('MyJavaScriptBot');
+const network = new Networking('RandomBot');
 
 network.on('map', (gameMap, id) => {
   const moves = [];

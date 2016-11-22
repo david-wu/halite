@@ -34,7 +34,7 @@ class Networking extends EventEmitter {
           break;
         default:
           // everything after is map updates
-          return this.emit('map', this.deserializeMap(line), this.id);
+          return this.emit('map', this.deserializeMap(line, this.id), this.id);
       }
     });
 
@@ -58,10 +58,10 @@ class Networking extends EventEmitter {
     }
   }
 
-  deserializeMap(inputString) {
+  deserializeMap(inputString, myId) {
     const flatMap = splitToInts(inputString);
 
-    const m = new GameMap(this.width, this.height);
+    const m = new GameMap(myId, this.width, this.height);
     let x = 0;
     let y = 0;
     let counter = 0;
