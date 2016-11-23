@@ -12,7 +12,7 @@ const configs = {
 
 
 gulp.task('default', ['build', 'clean'], gulpShell.task([
-	'./halite -d "30 30" "node ./src/MyBot.js" "node ./dist/MyBot5.js" "node ./dist/MyBot3.js" "node ./dist/MyBot3.js"'
+	'./halite -d "30 30" "node ./src/MyBot.js" "node ./dist/MyBot5.js"'
 ]));
 
 gulp.task('build', ['clean'], function(){

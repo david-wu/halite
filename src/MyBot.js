@@ -6,6 +6,16 @@ const network = new Networking('MyBot');
 // const log = require('./log.js')
 
 
+const constants = {
+  maxWaste: 50,
+  // Tiles with 0 production still have some value (allows getting to tiles with production)
+  baseTileValue: 5,
+  // Don't move unless strength is big enough
+  minFarmTime: 3,
+  maxTileStrength: 250,
+}
+
+
 
 network.on('map', function(gameMap, id){
   gameMap.initSites();
@@ -15,31 +25,8 @@ network.on('map', function(gameMap, id){
 
 
 
-
-
-const constants = {
-
-  maxWaste: 50,
-
-  // Tiles with 0 production still have some value (allows getting to tiles with production)
-  baseTileValue: 5,
-  // Don't move unless strength is big enough
-  minFarmTime: 3,
-  maxTileStrength: 250,
-
-}
-
-
-
-
-
-
 let takenSites = {};
 let vacatedSites = {};
-
-
-
-
 function getMoves(gameMap){
   takenSites = {};
   vacatedSites = {};
@@ -160,34 +147,52 @@ function setFrontsStats(site){
 }
 
 
-function setFrontState(frontState={}, site={}){
+
+function setFrontState(front={}, site={}){
+    setFrontBaseStats(front, site)
+    setFrontHostility(front, site)
+    setFrontDeltas(front, site)
+    return front;
+}
+
+function setFrontBaseStats(front, site){
     if(site.isMine){
-      frontState.distanceTo = frontState.distanceTo+1;
-      frontState.strengthTo = frontState.strengthTo+site.strength;
-      frontState.productionTo = frontState.productionTo+(site.production*(frontState.distanceTo-1));
-
-      if(frontState.distanceTo > 1){
-        frontState.hostile = false;
-      }
+      front.distanceTo = front.distanceTo+1;
+      front.strengthTo = front.strengthTo+site.strength;
+      front.productionTo = front.productionTo+(site.production*(front.distanceTo-1));
     }else{
-
-      if(site.owner > 0){
-        frontState.hostile = true;
-      }else if(site.strength > 20){
-        frontState.hostile = false;
-      }
-
-      frontState.strength = site.strength || 0
-      frontState.production = site.production || 0
-      frontState.pos = {
+      front.strength = _.isUndefined(site.strength) ? Infinity : site.strength;
+      front.production = site.production || 0
+      front.pos = {
         x: site.x,
         y: site.y,
       }
-      frontState.distanceTo = 0
-      frontState.strengthTo = 0
-      frontState.productionTo = 0
+      front.distanceTo = 0
+      front.strengthTo = 0
+      front.productionTo = 0
     }
-    return frontState;
+}
+
+function setFrontHostility(front, site){
+    if(site.isMine){
+      if(front.distanceTo > 1){
+        front.hostile = false;
+      }
+    }else{
+      if(site.owner > 0){
+        front.hostile = true;
+      // neutral space with strength over 20
+      }else if(site.strength > 20){
+        front.hostile = false;
+      }
+    }
+}
+
+// Change in front strength/production is valuable
+function setFrontDeltas(front, site){
+    if(site.isMine){
+    }else{
+    }
 }
 
 
