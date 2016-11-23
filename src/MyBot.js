@@ -1,62 +1,101 @@
-const {
-  Move,
-} = require('./hlt');
-
+const Move = require('./hlt').Move;
 const _ = require('lodash');
 const Networking = require('./networking');
 // const log = require('./log.js')
 
 const network = new Networking('MyBot');
 
-network.on('map', (gameMap, id) => {
+network.on('map', function(gameMap, id){
+  const moves = getMoves(gameMap, id);
+  network.sendMoves(moves);
+});
+
+
+function getMoves(gameMap){
   const moves = [];
 
   gameMap.initSites();
 
-  setSiteFronts(gameMap, id);
+  setSiteFronts(gameMap);
 
   gameMap.eachMySites(function(site){
-
     if(site.strength < 3*site.production){
       return;
     }
 
 
-    _.each(site.fronts, function(front, key){
-      front.key = key;
-      front.efficiency = (front.production+5) / ((front.strength + Math.pow(front.distanceTo,2))/2);
-      if(site.strength+front.strengthTo+front.productionTo >= 250){
-        front.canCapture = true;
-      }else{
-        front.canCapture = front.strength < (front.productionTo+front.strengthTo);
-      }
-    })
+    setFrontsStats(site);
 
     const frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
     const mostEfficientFront = _.last(frontsByEfficiency);
     if(mostEfficientFront && mostEfficientFront.canCapture){
-      const frontIndex = frontIndices[mostEfficientFront.key]
-      moves.push(new Move({x: site.x, y:site.y}, frontIndex));
+      moves.push(new Move({x: site.x, y:site.y}, mostEfficientFront.index));
     }
   })
 
-  network.sendMoves(moves);
-});
+  return moves;
+}
 
 
+const constants = {
 
-const frontIndices = {
-  north: 1,
-  east: 2,
-  south: 3,
-  west: 4,
+  // Tiles with 0 production still have some value (allows getting to tiles with production)
+  baseTileValue: 5,
+
+  maxTileStrength: 250,
+
+}
+
+const getFrontStats = {
+
+  // Should return (overall production gained / strength spent)
+  efficiency: function(front, site){
+    return (front.production+constants.baseTileValue) / ((front.strength + Math.pow(front.distanceTo, 2))/2);
+  },
+
+  // If most efficient front, waits for canCapture
+  canCapture: function(front, site){
+    if(site.strength+front.strengthTo+front.productionTo >= constants.maxTileStrength){
+      return true;
+    }else{
+      return front.strength < (front.productionTo+front.strengthTo);
+    }
+  }
+}
+
+function setFrontsStats(site){
+  _.each(site.fronts, function(front){
+    _.each(getFrontStats, function(getter, key){
+      front[key] = getter(front, site);
+    })
+  })
+}
+
+
+function setFrontState(frontState={}, site={}){
+    if(site.isMine){
+      frontState.distanceTo = frontState.distanceTo+1;
+      frontState.strengthTo = frontState.strengthTo+site.strength;
+      frontState.productionTo = frontState.productionTo+(site.production*(frontState.distanceTo-1));
+    }else{
+      frontState.strength = site.strength || 0
+      frontState.production = site.production || 0
+      frontState.pos = {
+        x: site.x,
+        y: site.y,
+      }
+      frontState.distanceTo = 0
+      frontState.strengthTo = 0
+      frontState.productionTo = 0
+    }
+    return frontState;
 }
 
 
 // Double Iteration on all squares
-// First loop finds gray square Location
-// Second lop finds distance to gray square
-function setSiteFronts(gameMap, id){
+// First loop sets gray square Location
+// Second lop sets distance to gray square
+function setSiteFronts(gameMap){
   setXFronts(gameMap);
   setYFronts(gameMap);
 }
@@ -113,31 +152,15 @@ function setYFronts(gameMap){
   }
 }
 
-function setFrontState(frontState={}, site={}){
-    if(site.isMine){
-      // frontState.hostility = 0
-      frontState.distanceTo = frontState.distanceTo+1;
-      frontState.strengthTo = frontState.strengthTo+site.strength;
-      frontState.productionTo = frontState.productionTo+(site.production*(frontState.distanceTo-1));
-    }else{
-
-      if(site.owner > 0){
-        frontState.hostility++
-      }
-      frontState.strength = site.strength || 0
-      frontState.production = site.production || 0
-      frontState.pos = {
-        x: site.x,
-        y: site.y,
-      }
-      frontState.distanceTo = 0
-      frontState.strengthTo = 0
-      frontState.productionTo = 0
-    }
-    return frontState;
-}
-
 
 function eachPerimeter(iteratee){
 
 }
+
+
+
+
+
+
+
+

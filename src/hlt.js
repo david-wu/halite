@@ -60,10 +60,10 @@ class GameMap {
         site.y = y;
         site.isMine = site.owner===this.myId;
         site.fronts = {
-          north: {},
-          east: {},
-          south: {},
-          west: {}
+          north: {key: 'north', index:1},
+          east: {key: 'east', index:2},
+          south: {key: 'south', index:3},
+          west: {key: 'west', index:4}
         }
       }
     }

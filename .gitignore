@@ -5,3 +5,4 @@ Visualizer
 node_modules
 *.log
 *.zip
+dist/MyBot.js
