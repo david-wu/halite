@@ -65,6 +65,7 @@ class GameMap {
           south: {key: 'south', index:3},
           west: {key: 'west', index:4}
         }
+        site.gameMap = this;
       }
     }
   }

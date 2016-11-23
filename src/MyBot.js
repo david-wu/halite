@@ -48,28 +48,40 @@ function getMoves(gameMap){
   setSiteFronts(gameMap);
 
   gameMap.eachMySites(function(site){
-    if(site.strength < constants.minFarmTime*site.production){
-      return;
-    }
+    if(site.strength < constants.minFarmTime*site.production){return}
 
     setFrontsStats(site);
 
-    const frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
-    const mostEfficientFront = _.last(frontsByEfficiency);
-    if(mostEfficientFront.canCapture){
+    let frontsByEfficiency;
+    const hostileFront = _.find(site.fronts, 'hostile');
+    if(hostileFront){
+      frontsByEfficiency = [hostileFront];
+    }else{
+      frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
+      frontsByEfficiency.shift();
+    }
 
-      const targetSite = gameMap.getSite(site, mostEfficientFront.index);
 
+    _.eachRight(frontsByEfficiency, function(front){
+
+      if(!front.shouldCapture){
+        return site.strength > 100 ? undefined : false;
+      }
+
+      const targetSite = gameMap.getSite(site, front.index);
 
       const wastedStrength = getWastedStrength(site, targetSite);
-
-      if(wastedStrength > 20){return}
+      if(wastedStrength > 20){
+        return site.strength > 100 ? undefined : false;
+      }
 
       _.set(takenSites, [targetSite.x, targetSite.y], site);
       _.set(vacatedSites, [targetSite.x, targetSite.y], site);
-      moves.push(new Move({x: site.x, y:site.y}, mostEfficientFront.index));
+      moves.push(new Move({x: site.x, y:site.y}, front.index));
+      return false;
 
-    }
+    })
+
   })
 
   return moves;
@@ -108,12 +120,33 @@ const frontStatGetters = {
     return (front.production+constants.baseTileValue) / ((front.strength + Math.pow(front.distanceTo, 2))/2);
   },
 
-  // If most efficient front, waits for canCapture
-  canCapture: function(front, site){
-    if(site.strength+front.strengthTo+front.productionTo >= constants.maxTileStrength){
+  // If most efficient front, waits for shouldCapture
+  shouldCapture: function(front, site){
+    if(site.strength >= constants.maxTileStrength){
       return true;
     }else{
-      return front.strength < (front.productionTo+front.strengthTo);
+
+      const strengthAtFront = front.productionTo+front.strengthTo;
+
+
+
+      // const isAlreadyBeingCaptured = (strengthAtFront-site.strength) > front.strength;
+      // if(isAlreadyBeingCaptured){
+
+      //   if(site.strength < 100){
+      //     return false
+      //   }
+
+      //   // A square 2 spaces ahead of it is already capturing
+      //   const siteOneSpaceAhead = site.gameMap.getSite(site, front.index)
+      //   if(!siteOneSpaceAhead.isMine){return true}
+      //   const capturerIsAtLeastTwoSpacesAway = (strengthAtFront-site.strength-siteOneSpaceAhead.strength-siteOneSpaceAhead.production) > front.strength
+      //   return capturerIsAtLeastTwoSpacesAway;
+      // }
+
+
+      const canCapture = (strengthAtFront) > front.strength;
+      return canCapture
     }
   }
 }
@@ -132,7 +165,18 @@ function setFrontState(frontState={}, site={}){
       frontState.distanceTo = frontState.distanceTo+1;
       frontState.strengthTo = frontState.strengthTo+site.strength;
       frontState.productionTo = frontState.productionTo+(site.production*(frontState.distanceTo-1));
+
+      if(frontState.distanceTo > 1){
+        frontState.hostile = false;
+      }
     }else{
+
+      if(site.owner > 0){
+        frontState.hostile = true;
+      }else if(site.strength > 20){
+        frontState.hostile = false;
+      }
+
       frontState.strength = site.strength || 0
       frontState.production = site.production || 0
       frontState.pos = {
