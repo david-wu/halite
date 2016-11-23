@@ -1,52 +1,107 @@
-const Move = require('./hlt').Move;
 const _ = require('lodash');
+const Move = require('./hlt').Move;
 const Networking = require('./networking');
-// const log = require('./log.js')
 
 const network = new Networking('MyBot');
+// const log = require('./log.js')
+
+
 
 network.on('map', function(gameMap, id){
+  gameMap.initSites();
   const moves = getMoves(gameMap, id);
   network.sendMoves(moves);
 });
 
 
-function getMoves(gameMap){
-  const moves = [];
 
-  gameMap.initSites();
+
+
+const constants = {
+
+  maxWaste: 50,
+
+  // Tiles with 0 production still have some value (allows getting to tiles with production)
+  baseTileValue: 5,
+  // Don't move unless strength is big enough
+  minFarmTime: 3,
+  maxTileStrength: 250,
+
+}
+
+
+
+
+
+
+let takenSites = {};
+let vacatedSites = {};
+
+
+
+
+function getMoves(gameMap){
+  takenSites = {};
+  vacatedSites = {};
+  const moves = [];
 
   setSiteFronts(gameMap);
 
   gameMap.eachMySites(function(site){
-    if(site.strength < 3*site.production){
+    if(site.strength < constants.minFarmTime*site.production){
       return;
     }
-
 
     setFrontsStats(site);
 
     const frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
     const mostEfficientFront = _.last(frontsByEfficiency);
-    if(mostEfficientFront && mostEfficientFront.canCapture){
+    if(mostEfficientFront.canCapture){
+
+      const targetSite = gameMap.getSite(site, mostEfficientFront.index);
+
+
+      const wastedStrength = getWastedStrength(site, targetSite);
+
+      if(wastedStrength > 20){return}
+
+      _.set(takenSites, [targetSite.x, targetSite.y], site);
+      _.set(vacatedSites, [targetSite.x, targetSite.y], site);
       moves.push(new Move({x: site.x, y:site.y}, mostEfficientFront.index));
+
     }
   })
 
   return moves;
 }
 
+function getWastedStrength(site, targetSite){
+  const targetPos = [targetSite.x, targetSite.y];
 
-const constants = {
+  const takenSite = _.get(takenSites, targetPos);
+  if(takenSite){
+    return calculateWastedStrength(site, takenSite);
+  }
 
-  // Tiles with 0 production still have some value (allows getting to tiles with production)
-  baseTileValue: 5,
+  const vacatedSite = _.get(vacatedSites, targetPos)
+  if(vacatedSite){
+    return 0;
+  }
 
-  maxTileStrength: 250,
-
+  return calculateWastedStrength(site, targetSite);
 }
 
-const getFrontStats = {
+function calculateWastedStrength(t1, t2){
+  if(!t2.isMine){
+    return 0;
+  }else{
+    return (t1.strength+t2.strength)-250
+  }
+}
+
+
+
+const frontStatGetters = {
 
   // Should return (overall production gained / strength spent)
   efficiency: function(front, site){
@@ -65,8 +120,8 @@ const getFrontStats = {
 
 function setFrontsStats(site){
   _.each(site.fronts, function(front){
-    _.each(getFrontStats, function(getter, key){
-      front[key] = getter(front, site);
+    _.each(frontStatGetters, function(statGetter, key){
+      front[key] = statGetter(front, site);
     })
   })
 }
