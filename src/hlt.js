@@ -23,6 +23,10 @@ class Site {
     this.strength = strength;
     this.production = production;
   }
+  pos(){
+    return [this.x, this.y]
+  }
+
 }
 
 class Move {
@@ -119,6 +123,11 @@ class GameMap {
     return Math.atan2(dy, dx);
   }
 
+  getSite(l, direction = STILL) {
+    const { x, y } = this.getLocation(l, direction);
+    return this.contents[y][x];
+  }
+
   getLocation(loc, direction) {
     let { x, y } = loc;
     if (direction === STILL) {
@@ -155,16 +164,6 @@ class GameMap {
     return { x, y };
   }
 
-  getSite(l, direction = STILL) {
-    let { x, y } = this.getLocation(l, direction);
-    // while(x >= this.width){
-    //   x = x-this.width;
-    // }
-    // while(y >= this.height){
-    //   y = y-this.height;
-    // }
-    return this.contents[y][x];
-  }
 }
 
 module.exports = {
