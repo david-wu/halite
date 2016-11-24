@@ -61,7 +61,6 @@ function getMoves(gameMap, coordinator){
 
       if(!front.canCapture){
         return false;
-        return site.strength > 100 ? undefined : false;
       }
 
       const targetSite = gameMap.getSite(site, front.index);
