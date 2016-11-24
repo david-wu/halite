@@ -11,7 +11,7 @@ const network = new Networking('MyBot');
 
 const constants = {
   // If combining tiles will waste this much, don't move
-  maxWaste: 50,
+  maxWaste: 20,
   // Tiles with 0 production still have some value (allows getting to tiles with production)
   baseTileValue: 2,
   // Don't move unless strength is big enough
@@ -60,17 +60,18 @@ function getMoves(gameMap, coordinator){
     _.eachRight(frontsByEfficiency, function(front){
 
       if(!front.canCapture){
+        return false;
         return site.strength > 100 ? undefined : false;
       }
 
       const targetSite = gameMap.getSite(site, front.index);
 
       const wastedStrength = coordinator.getWastedStrength(site, targetSite);
-      if(wastedStrength > 20){
+      if(wastedStrength > constants.maxWaste){
         return site.strength > 100 ? undefined : false;
       }
 
-      coordinator.declareMove(targetSite, site)
+      coordinator.declareMove(site, targetSite)
       moves.push(new Move({x: site.x, y:site.y}, front.index));
       return false;
 
@@ -116,9 +117,6 @@ function setFrontEfficiency(front, site){
 }
 
 function setFrontCanCapture(front, site){
-  if(site.strength >= 250){
-    return front.canCapture = true;;
-  }
   const strengthAtFront = front.productionTo+front.strengthTo;
   front.canCapture = strengthAtFront > front.strength;
 }

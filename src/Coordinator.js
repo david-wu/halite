@@ -1,52 +1,36 @@
 const _ = require('lodash')
 
-
 // Prevents tiles from going over 250
-// Bug, takenSites don't add in original tile's strength
 class Coordinator{
 
   constructor(options){
     _.extend(this, options);
-    _.defaults(this, {
-      takenSites: {},
-      vacatedSites: {},
-    });
   }
 
   reset(gameMap){
-  	this.gameMap = gameMap;
-    this.takenSites = {};
-    this.vacatedSites = {};
+    this.gameMap = gameMap;
   }
 
   declareMove(site, targetSite){
-    const targetPos = [targetSite.x, targetSite.y];
-    _.set(this.takenSites, targetPos, site);
-    _.set(this.vacatedSites, targetPos, site);
+    targetSite.willBeMovedHere.push(site);
+    site.willBeVacated = true;
   }
 
   getWastedStrength(site, targetSite){
-    const targetPos = targetSite.pos();
+    const addedStrength = _.reduce(targetSite.willBeMovedHere, function(strength, movedSite){
+      return strength+movedSite.strength
+    }, site.strength)
 
-    const takenSite = _.get(this.takenSites, targetPos);
-    if(takenSite){
-      return this.calculateWastedStrength(site, takenSite);
+    if(targetSite.willBeVacated){
+      return addedStrength-250
     }
 
-    const vacatedSite = _.get(this.vacatedSites, targetPos)
-    if(vacatedSite){
-      return 0;
-    }
-
-    return this.calculateWastedStrength(site, targetSite);
-  }
-
-  calculateWastedStrength(t1, t2){
-    if(!t2.isMine){
-      return 0;
+    if(targetSite.isMine){
+      return (addedStrength + targetSite.strength)-250;
     }else{
-      return (t1.strength+t2.strength)-250
+      return (addedStrength - targetSite.strength)-250;
     }
+
   }
 }
 

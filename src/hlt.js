@@ -67,8 +67,9 @@ class GameMap {
           north: {key: 'north', index:1},
           east: {key: 'east', index:2},
           south: {key: 'south', index:3},
-          west: {key: 'west', index:4}
+          west: {key: 'west', index:4},
         }
+        site.willBeMovedHere = [];
         site.gameMap = this;
       }
     }
