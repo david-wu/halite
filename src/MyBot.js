@@ -4,8 +4,8 @@ const Networking = require('./networking');
 
 
 
-const network = new Networking('MyBot');
-const log = require('./log.js')
+const network = new Networking('6_0');
+// const log = require('./log.js')
 
 
 
@@ -52,11 +52,7 @@ function getMoves(gameMap, coordinator){
     const hostileFront = _.find(site.fronts, 'hostile');
     if(hostileFront){
 
-      const neighborsSortedByHostility = _.sortBy(site.neighbors(), function(neighbor){
-        return neighbor.hostileNeighbors().length + (neighbor.isHostile?1:0)
-      }).reverse()
-
-      _.each(neighborsSortedByHostility, function(targetSite){
+      _.each(site.neighborsByHostility(), function(targetSite){
         if(coordinator.getWastedStrength(site, targetSite) > constants.maxWaste){
           return;
         }
@@ -127,7 +123,7 @@ function getMoves(gameMap, coordinator){
       // }
 
       // wait for longer production if already being captured
-      if (front.strength < front.productionTo + front.strengthTo - site.strength && site.strength < site.production * 5) {
+      if(front.strength < front.productionTo+front.strengthTo-site.strength && site.strength<site.production*8) {
         return;
       }
 

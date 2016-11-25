@@ -43,6 +43,12 @@ class Site {
 		})
 	}
 
+	neighborsByHostility(){
+		return _.sortBy(this.neighbors(), function(neighbor){
+			return -(neighbor.hostileNeighbors().length + (neighbor.isHostile ? 1 : 0))
+		})
+	}
+
 	hostileNeighbors(){
 		return _.filter(this.neighbors(), function(neighbor){
 			return neighbor.isHostile
@@ -75,7 +81,7 @@ class Site {
 		const stack = [];
 		_.each(this.neighbors(), function(neighbor){
 			if(_.get(visited, neighbor.pos())){return}
-			iteratee(neighbor);
+				iteratee(neighbor);
 			_.set(visited, neighbor.pos(), true)
 			stack.push(neighbor)
 		})
@@ -93,10 +99,10 @@ class Site {
 
 	neighbors(){
 		return [
-			this.neighbor('north'),
-			this.neighbor('east'),
-			this.neighbor('south'),
-			this.neighbor('west'),
+		this.neighbor('north'),
+		this.neighbor('east'),
+		this.neighbor('south'),
+		this.neighbor('west'),
 		]
 	}
 
