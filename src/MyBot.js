@@ -5,7 +5,7 @@ const Networking = require('./networking');
 
 
 const network = new Networking('MyBot');
-// const log = require('./log.js')
+const log = require('./log.js')
 
 
 
@@ -13,9 +13,9 @@ const constants = {
   // If combining tiles will waste this much, don't move
   maxWaste: 20,
   // Tiles with 0 production still have some value (allows getting to tiles with production)
-  baseTileValue: 2,
+  baseTileValue: 0,
   // Don't move unless strength is big enough
-  minFarmTime: 3,
+  minFarmTime: 0,
 
 
   // Having strength makes squares want to move
@@ -44,20 +44,33 @@ function getMoves(gameMap, coordinator){
   setSiteFronts(gameMap);
 
   gameMap.eachMySites(function(site){
+    if(site.strength === 0){return;}
     if(site.strength < constants.minFarmTime*site.production){return}
 
 
     let frontsByEfficiency;
     const hostileFront = _.find(site.fronts, 'hostile');
     if(hostileFront){
+
+      // frontsByEfficiency = _.sortBy(site.fronts, function(front){
+      //   return _.reduce(front.site.fronts, function(hostileFrontCount, secondFront){
+      //     return hostileFrontCount + (secondFront.site.isHostile ? 1 : 0);
+      //   }, 0)
+      // }).reverse();
+      // log(site)
       frontsByEfficiency = [hostileFront];
     }else{
-      frontsByEfficiency = _.sortBy(site.fronts, 'efficiency')
-      frontsByEfficiency.shift();
+
+      // Stop reversing
+      frontsByEfficiency = _.sortBy(site.fronts, 'efficiency').reverse();
+      if(frontsByEfficiency[0].reverseIndex===frontsByEfficiency[1].index){
+        frontsByEfficiency.splice(1, 1);
+      }
+      frontsByEfficiency.length=2;
     }
 
 
-    _.eachRight(frontsByEfficiency, function(front){
+    _.each(frontsByEfficiency, function(front){
 
       if(!front.canCapture){
         return false;
@@ -71,13 +84,12 @@ function getMoves(gameMap, coordinator){
       }
 
 
-      // if(front.distanceTo>5 && site.strength<100){
-      //   return false;
-      // }
 
-      // wait for longer production if already being captured
-      if(front.strength < (front.productionTo+front.strengthTo-site.strength) && site.strength<site.production*5){
-        return;
+      // wait for more strength if already being captured
+      if(front.strength < (front.productionTo+front.strengthTo-site.strength)){
+        if(site.strength<50){
+          return;
+        }
       }
 
 
@@ -98,11 +110,21 @@ function getMoves(gameMap, coordinator){
 // }
 
 
+
+function setSiteState(site){
+
+}
+
+
+
+
+
 function setFrontState(front={}, site={}){
     // setFrontDeltas(front, site)
     setFrontBaseStats(front, site)
     setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
+    setSiteIsHostile(front, site)
     setFrontHostility(front, site)
     front.lastSite = site;
     return front;
@@ -134,6 +156,7 @@ function setFrontBaseStats(front, site){
         x: site.x,
         y: site.y,
       }
+      front.site = site;
     }
 }
 function setFrontEfficiency(front, site){
@@ -147,6 +170,9 @@ function setFrontCanCapture(front, site){
   }
   const strengthAtFront = front.productionTo+front.strengthTo;
   front.canCapture = strengthAtFront > front.strength;
+}
+function setSiteIsHostile(front, site){
+  site.isHostile = !site.isMine && site.owner>0;
 }
 function setFrontHostility(front, site){
     if(site.isMine){

@@ -5,13 +5,41 @@ const logFilePath = path.resolve(__dirname, '../debug.log')
 
 module.exports = function(){}
 
+
+
+
+
+
+function stringify(o){
+
+  var cache = [];
+  return JSON.stringify(o, function(key, value) {
+      if (typeof value === 'object' && value !== null) {
+        return;
+          if (cache.indexOf(value) !== -1) {
+              // Circular reference found, discard key
+              return;
+          }
+          // Store value in our collection
+          cache.push(value);
+      }
+      return value;
+  });
+}
+
+const inspect = require('util').inspect;
+
+
+
 if(__dirname){
 
   const log = function(text){
     return new Promise(function(resolve, reject){
-      if(typeof text === 'object'){
-        text = JSON.stringify(text, null, '    ');
-      }
+      text = inspect(text)
+
+      // if(typeof text === 'object'){
+      //   text = stringify(text, null, '    ');
+      // }
       fs.appendFile(logFilePath, text+'\n', function(err){
         if(err){reject()}
         resolve();

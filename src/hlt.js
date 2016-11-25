@@ -64,10 +64,26 @@ class GameMap {
         site.y = y;
         site.isMine = site.owner===this.myId;
         site.fronts = {
-          north: {key: 'north', index:1},
-          east: {key: 'east', index:2},
-          south: {key: 'south', index:3},
-          west: {key: 'west', index:4},
+          north: {
+            key: 'north',
+            index: 1,
+            reverseIndex: 3,
+          },
+          east: {
+            key: 'east',
+            index: 2,
+            reverseIndex: 4,
+          },
+          south: {
+            key: 'south',
+            index: 3,
+            reverseIndex: 1,
+          },
+          west: {
+            key: 'west',
+            index: 4,
+            reverseIndex: 2
+          },
         }
         site.willBeMovedHere = [];
         site.gameMap = this;
