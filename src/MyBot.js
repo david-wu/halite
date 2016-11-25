@@ -70,6 +70,17 @@ function getMoves(gameMap, coordinator){
         return site.strength > 100 ? undefined : false;
       }
 
+
+      // if(front.distanceTo>5 && site.strength<100){
+      //   return false;
+      // }
+
+      // wait for longer production if already being captured
+      if(front.strength < (front.productionTo+front.strengthTo-site.strength) && site.strength<site.production*5){
+        return;
+      }
+
+
       coordinator.declareMove(site, targetSite)
       moves.push(new Move({x: site.x, y:site.y}, front.index));
       return false;
@@ -81,16 +92,33 @@ function getMoves(gameMap, coordinator){
   return moves;
 }
 
+// function shouldMove(front, site){
+//   const strengthAtFront = (front.productionTo+front.strengthTo)/front.strength
+
+// }
+
 
 function setFrontState(front={}, site={}){
+    // setFrontDeltas(front, site)
     setFrontBaseStats(front, site)
     setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
     setFrontHostility(front, site)
-    // setFrontDeltas(front, site)
+    front.lastSite = site;
     return front;
 }
+// Capturing points that lead to more valuable points is more efficient
+// function setFrontDeltas(front, site){
+//     if(_.isEmpty(site)){
+//       front.deltaStrength = 0;
+//       front.deltaProduction = 0;
+//     }else if(site.isMine){
 
+//     }else{
+//       front.deltaStrength = front.strength-site.strength;
+//       front.deltaProduction = front.production-site.production;
+//     }
+// }
 function setFrontBaseStats(front, site){
     if(site.isMine){
       front.productionTo += (site.production*front.distanceTo);
@@ -108,18 +136,18 @@ function setFrontBaseStats(front, site){
       }
     }
 }
-
 function setFrontEfficiency(front, site){
-  const tileValue = front.production+constants.baseTileValue
+  const tileValue = front.production+constants.baseTileValue// + (front.deltaProduction)
   const tileCost = front.strength + Math.pow(front.distanceTo, 2)
   front.efficiency = tileValue/tileCost;
 }
-
 function setFrontCanCapture(front, site){
+  if(!site.isMine && site.owner>0){
+    return true;
+  }
   const strengthAtFront = front.productionTo+front.strengthTo;
   front.canCapture = strengthAtFront > front.strength;
 }
-
 function setFrontHostility(front, site){
     if(site.isMine){
       if(front.distanceTo > 1){
@@ -134,14 +162,6 @@ function setFrontHostility(front, site){
       }
     }
 }
-
-// Capturing points that lead to more valuable points is more efficient
-// function setFrontDeltas(front, site){
-//     if(site.isMine){
-//     }else{
-//     }
-// }
-
 
 // Double Iteration on all squares
 // First loop sets gray square Location
