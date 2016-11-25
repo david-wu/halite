@@ -13,9 +13,9 @@ const constants = {
   // If combining tiles will waste this much, don't move
   maxWaste: 20,
   // Tiles with 0 production still have some value (allows getting to tiles with production)
-  baseTileValue: 0,
+  baseTileValue: 2,
   // Don't move unless strength is big enough
-  minFarmTime: 0,
+  minFarmTime: 3,
 
 
   // Having strength makes squares want to move
@@ -30,7 +30,7 @@ const Coordinator = require('./Coordinator.js');
 const coordinator = new Coordinator();
 
 network.on('map', function(gameMap){
-  gameMap.initSites();
+  // gameMap.initSites();
   coordinator.reset(gameMap);
   const moves = getMoves(gameMap, coordinator);
   network.sendMoves(moves);
@@ -52,20 +52,54 @@ function getMoves(gameMap, coordinator){
     const hostileFront = _.find(site.fronts, 'hostile');
     if(hostileFront){
 
+      const neighborsSortedByHostility = _.sortBy(site.neighbors(), function(neighbor){
+        return neighbor.hostileNeighbors().length + (neighbor.isHostile?1:0)
+      }).reverse()
+
+      _.each(neighborsSortedByHostility, function(targetSite){
+        if(coordinator.getWastedStrength(site, targetSite) > constants.maxWaste){
+          return;
+        }
+
+        if(!targetSite.hostileNeighbors().length){
+          targetSite = gameMap.getSite(site, hostileFront.index)
+        }
+        coordinator.declareMove(site, targetSite)
+        moves.push(site.moveTo(targetSite));
+        return false;
+      })
+
+
+      // const targetSite = _.last(neighborsSortedByHostility)//[3]
+
+      // if(coordinator.getWastedStrength(site, targetSite) > constants.maxWaste){
+      //   return;
+      // }
+
+      // const targetSite = site.neighbors()[2]
+
+      // coordinator.declareMove(site, targetSite)
+      // moves.push(site.moveTo(targetSite));
+      // return false;
+
+
       // frontsByEfficiency = _.sortBy(site.fronts, function(front){
       //   return _.reduce(front.site.fronts, function(hostileFrontCount, secondFront){
       //     return hostileFrontCount + (secondFront.site.isHostile ? 1 : 0);
       //   }, 0)
       // }).reverse();
       // log(site)
-      frontsByEfficiency = [hostileFront];
+      // frontsByEfficiency = [hostileFront];
     }else{
 
       // Stop reversing
       frontsByEfficiency = _.sortBy(site.fronts, 'efficiency').reverse();
-      if(frontsByEfficiency[0].reverseIndex===frontsByEfficiency[1].index){
-        frontsByEfficiency.splice(1, 1);
-      }
+      _.remove(frontsByEfficiency, function(front){
+        return front.reverseIndex === frontsByEfficiency[0].index
+      })
+      // if(frontsByEfficiency[0].reverseIndex===frontsByEfficiency[1].index){
+      //   frontsByEfficiency.splice(1, 1);
+      // }
       frontsByEfficiency.length=2;
     }
 
@@ -85,12 +119,18 @@ function getMoves(gameMap, coordinator){
 
 
 
-      // wait for more strength if already being captured
-      if(front.strength < (front.productionTo+front.strengthTo-site.strength)){
-        if(site.strength<50){
-          return;
-        }
+      // // wait for more strength if already being captured
+      // if(front.strength < (front.productionTo+front.strengthTo-site.strength)){
+      //   if(site.strength<50){
+      //     return;
+      //   }
+      // }
+
+      // wait for longer production if already being captured
+      if (front.strength < front.productionTo + front.strengthTo - site.strength && site.strength < site.production * 5) {
+        return;
       }
+
 
 
       coordinator.declareMove(site, targetSite)
@@ -124,7 +164,6 @@ function setFrontState(front={}, site={}){
     setFrontBaseStats(front, site)
     setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
-    setSiteIsHostile(front, site)
     setFrontHostility(front, site)
     front.lastSite = site;
     return front;
@@ -171,9 +210,6 @@ function setFrontCanCapture(front, site){
   const strengthAtFront = front.productionTo+front.strengthTo;
   front.canCapture = strengthAtFront > front.strength;
 }
-function setSiteIsHostile(front, site){
-  site.isHostile = !site.isMine && site.owner>0;
-}
 function setFrontHostility(front, site){
     if(site.isMine){
       if(front.distanceTo > 1){
@@ -183,7 +219,7 @@ function setFrontHostility(front, site){
       if(site.owner > 0){
         front.hostile = true;
       // neutral space with strength over 20
-      }else if(site.strength > 20){
+      }else if(site.strength > 0){
         front.hostile = false;
       }
     }
