@@ -3,10 +3,8 @@ const Move = require('./hlt').Move;
 const Networking = require('./networking');
 
 
-
 const network = new Networking('6_0');
 // const log = require('./log.js')
-
 
 
 const constants = {
@@ -16,21 +14,14 @@ const constants = {
   baseTileValue: 2,
   // Don't move unless strength is big enough
   minFarmTime: 3,
-
-
-  // Having strength makes squares want to move
-  itch: 3,
-  // Only the strongest 10% of tiles may move?
-  percentMovable: 0.1,
 }
-
 
 
 const Coordinator = require('./Coordinator.js');
 const coordinator = new Coordinator();
 
+
 network.on('map', function(gameMap){
-  // gameMap.initSites();
   coordinator.reset(gameMap);
   const moves = getMoves(gameMap, coordinator);
   network.sendMoves(moves);
@@ -48,7 +39,6 @@ function getMoves(gameMap, coordinator){
     if(site.strength < constants.minFarmTime*site.production){return}
 
 
-    let frontsByEfficiency;
     const hostileFront = _.find(site.fronts, 'hostile');
     if(hostileFront){
 
@@ -58,100 +48,44 @@ function getMoves(gameMap, coordinator){
         }
 
         if(!targetSite.hostileNeighbors().length){
-          targetSite = gameMap.getSite(site, hostileFront.index)
+          targetSite = hostileFront.site
         }
         coordinator.declareMove(site, targetSite)
         moves.push(site.moveTo(targetSite));
         return false;
       })
 
-
-      // const targetSite = _.last(neighborsSortedByHostility)//[3]
-
-      // if(coordinator.getWastedStrength(site, targetSite) > constants.maxWaste){
-      //   return;
-      // }
-
-      // const targetSite = site.neighbors()[2]
-
-      // coordinator.declareMove(site, targetSite)
-      // moves.push(site.moveTo(targetSite));
-      // return false;
-
-
-      // frontsByEfficiency = _.sortBy(site.fronts, function(front){
-      //   return _.reduce(front.site.fronts, function(hostileFrontCount, secondFront){
-      //     return hostileFrontCount + (secondFront.site.isHostile ? 1 : 0);
-      //   }, 0)
-      // }).reverse();
-      // log(site)
-      // frontsByEfficiency = [hostileFront];
     }else{
 
-      // Stop reversing
-      frontsByEfficiency = _.sortBy(site.fronts, 'efficiency').reverse();
-      _.remove(frontsByEfficiency, function(front){
-        return front.reverseIndex === frontsByEfficiency[0].index
-      })
-      // if(frontsByEfficiency[0].reverseIndex===frontsByEfficiency[1].index){
-      //   frontsByEfficiency.splice(1, 1);
-      // }
-      frontsByEfficiency.length=2;
-    }
+      _.each(site.frontsByEfficiency(), function(front){
 
+        if(!front.canCapture){
+          return false;
+        }
 
-    _.each(frontsByEfficiency, function(front){
+        const targetSite = gameMap.getSite(site, front.index);
 
-      if(!front.canCapture){
+        const wastedStrength = coordinator.getWastedStrength(site, targetSite);
+        if(wastedStrength > constants.maxWaste){
+          return site.strength > 100 ? undefined : false;
+        }
+
+        // wait for longer production if already being captured
+        if(front.strength < front.productionTo+front.strengthTo-site.strength && site.strength<site.production*8) {
+          return;
+        }
+
+        coordinator.declareMove(site, targetSite)
+        moves.push(site.moveTo(targetSite));
         return false;
-      }
 
-      const targetSite = gameMap.getSite(site, front.index);
-
-      const wastedStrength = coordinator.getWastedStrength(site, targetSite);
-      if(wastedStrength > constants.maxWaste){
-        return site.strength > 100 ? undefined : false;
-      }
-
-
-
-      // // wait for more strength if already being captured
-      // if(front.strength < (front.productionTo+front.strengthTo-site.strength)){
-      //   if(site.strength<50){
-      //     return;
-      //   }
-      // }
-
-      // wait for longer production if already being captured
-      if(front.strength < front.productionTo+front.strengthTo-site.strength && site.strength<site.production*8) {
-        return;
-      }
-
-
-
-      coordinator.declareMove(site, targetSite)
-      moves.push(new Move({x: site.x, y:site.y}, front.index));
-      return false;
-
-    })
+      })
+    }
 
   })
 
   return moves;
 }
-
-// function shouldMove(front, site){
-//   const strengthAtFront = (front.productionTo+front.strengthTo)/front.strength
-
-// }
-
-
-
-function setSiteState(site){
-
-}
-
-
 
 
 

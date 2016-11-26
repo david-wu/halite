@@ -1,13 +1,5 @@
 const _ = require('lodash')
 
-
-const directionIndices = {
-	north: 1,
-	east: 2,
-	south: 3,
-	west: 4
-};
-
 class Site {
 
 	constructor(options){
@@ -43,6 +35,18 @@ class Site {
 		})
 	}
 
+	frontsByEfficiency(){
+		const frontsByEfficiency = _.sortBy(this.fronts, 'efficiency').reverse();
+
+		// prevent going back and forth
+		_.remove(frontsByEfficiency, function(front){
+			return front.reverseIndex === frontsByEfficiency[0].index
+		})
+
+		frontsByEfficiency.length=2;
+		return frontsByEfficiency;
+	}
+
 	neighborsByHostility(){
 		return _.sortBy(this.neighbors(), function(neighbor){
 			return -(neighbor.hostileNeighbors().length + (neighbor.isHostile ? 1 : 0))
@@ -66,11 +70,6 @@ class Site {
 			direction: direction
 		}
 	}
-
-	// directionsTo(site){
-	// 	const neighbors = this.neighbors();
-	// 	return _.indexOf(this.neighbors, site)+1
-	// }
 
 	bfTraverse(iteratee, levels=1, visited={}){
 		if(levels<=0){
@@ -99,10 +98,10 @@ class Site {
 
 	neighbors(){
 		return [
-		this.neighbor('north'),
-		this.neighbor('east'),
-		this.neighbor('south'),
-		this.neighbor('west'),
+			this.neighbor('north'),
+			this.neighbor('east'),
+			this.neighbor('south'),
+			this.neighbor('west'),
 		]
 	}
 
@@ -115,6 +114,14 @@ class Site {
 	}
 
 }
+
+
+const directionIndices = {
+	north: 1,
+	east: 2,
+	south: 3,
+	west: 4
+};
 
 
 module.exports = Site;
