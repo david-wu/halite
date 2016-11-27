@@ -28,7 +28,7 @@ class Coordinator{
     if(targetSite.isMine){
       return (addedStrength + targetSite.strength)-250;
     }else{
-      return (addedStrength - targetSite.strength)-250;
+      return addedStrength-250;
     }
 
   }

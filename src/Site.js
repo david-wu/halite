@@ -6,10 +6,12 @@ class Site {
 		_.extend(this, options);
 		_.extend(this, {
 			isMine: this.gameMap.myId===this.owner,
-			willBeMovedHere: [],
 		})
 		_.extend(this, {
 			isHostile: !this.isMine && this.owner>0,
+			isNeutral: this.owner===0,
+			willBeMovedHere: [],
+			willBeVacated: false,
 			fronts: {
 				north: {
 					key: 'north',
@@ -36,14 +38,16 @@ class Site {
 	}
 
 	frontsByEfficiency(){
-		const frontsByEfficiency = _.sortBy(this.fronts, 'efficiency').reverse();
+		const frontsByEfficiency = _.sortBy(this.fronts, function(front){
+			return -front.efficiency;
+		});
 
 		// prevent going back and forth
 		_.remove(frontsByEfficiency, function(front){
 			return front.reverseIndex === frontsByEfficiency[0].index
 		})
+		frontsByEfficiency.length = 2;
 
-		frontsByEfficiency.length=2;
 		return frontsByEfficiency;
 	}
 
@@ -59,7 +63,6 @@ class Site {
 		})
 	}
 
-
 	moveTo(site){
 		const direction = _.indexOf(this.neighbors(), site)+1
 		return {
@@ -67,28 +70,28 @@ class Site {
 				x: this.x,
 				y: this.y,
 			},
-			direction: direction
+			direction: direction || 0
 		}
 	}
 
-	bfTraverse(iteratee, levels=1, visited={}){
-		if(levels<=0){
-			return;
-		}
-		_.set(visited, this.pos(), true)
+	// bfTraverse(iteratee, levels=1, visited={}){
+	// 	if(levels<=0){
+	// 		return;
+	// 	}
+	// 	_.set(visited, this.pos(), true)
 
-		const stack = [];
-		_.each(this.neighbors(), function(neighbor){
-			if(_.get(visited, neighbor.pos())){return}
-				iteratee(neighbor);
-			_.set(visited, neighbor.pos(), true)
-			stack.push(neighbor)
-		})
+	// 	const stack = [];
+	// 	_.each(this.neighbors(), function(neighbor){
+	// 		if(_.get(visited, neighbor.pos())){return}
+	// 		iteratee(neighbor)
+	// 		_.set(visited, neighbor.pos(), true)
+	// 		stack.push(neighbor)
+	// 	})
 
-		_.each(stack, function(neighbor){
-			neighbor.bfTraverse(iteratee, levels-1, visited);
-		})
-	}
+	// 	_.each(stack, function(neighbor){
+	// 		neighbor.bfTraverse(iteratee, levels-1, visited);
+	// 	})
+	// }
 
 	eachNeighbor(iteratee){
 		_.each(this.neighbors(), function(neighbor){

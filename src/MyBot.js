@@ -3,8 +3,8 @@ const Move = require('./hlt').Move;
 const Networking = require('./networking');
 
 
-const network = new Networking('6_0');
-// const log = require('./log.js')
+const network = new Networking('6_1');
+const log = require('./log.js')
 
 
 const constants = {
@@ -21,26 +21,33 @@ const Coordinator = require('./Coordinator.js');
 const coordinator = new Coordinator();
 
 
+let turnCount = 0;
 network.on('map', function(gameMap){
+  turnCount++;
   coordinator.reset(gameMap);
-  const moves = getMoves(gameMap, coordinator);
+  const moves = getMoves(gameMap, coordinator, turnCount);
   network.sendMoves(moves);
 });
 
 
 
-function getMoves(gameMap, coordinator){
+function getMoves(gameMap, coordinator, turnCount){
   const moves = [];
 
   setSiteFronts(gameMap);
 
   gameMap.eachMySites(function(site){
     if(site.strength === 0){return;}
-    if(site.strength < constants.minFarmTime*site.production){return}
 
 
-    const hostileFront = _.find(site.fronts, 'hostile');
-    if(hostileFront){
+    // const hostileFront = _.find(site.fronts, 'hostile');
+    const hostileFronts = _.sortBy(site.fronts, 'distanceToHostile');
+    const closestHostileFront = hostileFronts[0]
+
+    if(closestHostileFront.distanceToHostile<=2){
+
+
+      // getCommandMove();
 
       _.each(site.neighborsByHostility(), function(targetSite){
         if(coordinator.getWastedStrength(site, targetSite) > constants.maxWaste){
@@ -48,7 +55,7 @@ function getMoves(gameMap, coordinator){
         }
 
         if(!targetSite.hostileNeighbors().length){
-          targetSite = hostileFront.site
+          targetSite = closestHostileFront.site
         }
         coordinator.declareMove(site, targetSite)
         moves.push(site.moveTo(targetSite));
@@ -56,6 +63,7 @@ function getMoves(gameMap, coordinator){
       })
 
     }else{
+      if(site.strength < constants.minFarmTime*site.production){return}
 
       _.each(site.frontsByEfficiency(), function(front){
 
@@ -90,26 +98,13 @@ function getMoves(gameMap, coordinator){
 
 
 function setFrontState(front={}, site={}){
-    // setFrontDeltas(front, site)
     setFrontBaseStats(front, site)
     setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
-    setFrontHostility(front, site)
+    setFrontDistanceToHostile(front, site)
     front.lastSite = site;
     return front;
 }
-// Capturing points that lead to more valuable points is more efficient
-// function setFrontDeltas(front, site){
-//     if(_.isEmpty(site)){
-//       front.deltaStrength = 0;
-//       front.deltaProduction = 0;
-//     }else if(site.isMine){
-
-//     }else{
-//       front.deltaStrength = front.strength-site.strength;
-//       front.deltaProduction = front.production-site.production;
-//     }
-// }
 function setFrontBaseStats(front, site){
     if(site.isMine){
       front.productionTo += (site.production*front.distanceTo);
@@ -129,30 +124,39 @@ function setFrontBaseStats(front, site){
     }
 }
 function setFrontEfficiency(front, site){
-  const tileValue = front.production+constants.baseTileValue// + (front.deltaProduction)
+  const tileValue = front.production + constants.baseTileValue
   const tileCost = front.strength + Math.pow(front.distanceTo, 2)
   front.efficiency = tileValue/tileCost;
 }
 function setFrontCanCapture(front, site){
-  if(!site.isMine && site.owner>0){
+  if(site.isHostile){
     return true;
   }
   const strengthAtFront = front.productionTo+front.strengthTo;
   front.canCapture = strengthAtFront > front.strength;
 }
-function setFrontHostility(front, site){
-    if(site.isMine){
-      if(front.distanceTo > 1){
-        front.hostile = false;
-      }
-    }else{
-      if(site.owner > 0){
-        front.hostile = true;
-      // neutral space with strength over 20
-      }else if(site.strength > 0){
-        front.hostile = false;
-      }
+
+function setFrontDistanceToHostile(front, site){
+    // If site is undefined (init) or 0, and strength>0
+    if(!site.owner && site.strength>0){
+      front.distanceToHostile = Infinity;
+      return;
     }
+    if(site.isHostile){
+      front.distanceToHostile = 0;
+      return;
+    }
+
+    front.distanceToHostile++;
+    const mostHostileFront = _.minBy(site.fronts, 'distanceToHostile')
+    if(!mostHostileFront){return;}
+
+    const closestDistanceToHostile = mostHostileFront.distanceToHostile
+    if(closestDistanceToHostile && front.distanceToHostile>closestDistanceToHostile){
+      front.closestDistanceToHostile = closestDistanceToHostile;
+      // front.distanceToHostile = site.distanceToHostile;
+    }
+
 }
 
 // Double Iteration on all squares
