@@ -51,6 +51,7 @@ class WarChief extends Chief{
 
     _.each(this.sites, (site)=>{
       if(site.moved){return;}
+      if(site.strength < minFarmTime*site.production){return}
 
       _.each(site.neighborsByAdjacentHostilesCount(), (targetSite)=>{
 

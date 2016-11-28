@@ -81,7 +81,7 @@ class Site {
 	// not exactly correct
 	isMineNeighbors(){
 		return _.filter(this.neighbors(), function(neighbor){
-			return (neighbor.isMine && neighbor.strength>20) || neighbor.willBeMovedHere.length)
+			return (neighbor.isMine && neighbor.strength>20) || neighbor.willBeMovedHere.length;
 		})
 	}
 
