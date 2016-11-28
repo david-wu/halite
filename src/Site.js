@@ -52,20 +52,38 @@ class Site {
 		return frontsByEfficiency;
 	}
 
+	// bestCombatNeighbors(){
+	// 	return _.sortBy(this.neighbors(), function(neighbor){
+	// 		return neighbor.expectedStrength();
+	// 	})
+	// }
+
+	expectedStrength(){
+		const addedStrength = _.reduce(this.willBeMovedHere, function(strength, movedSite){
+			return strength+movedSite.strength
+		}, this.strength)
+
+		if(!this.isMine || this.moved){
+			return addedStrength - this.strength;
+		}else{
+			return addedStrength;
+		}
+	}
+
 	neighborsByAdjacentHostilesCount(){
 		return _.sortBy(this.neighbors(), function(neighbor){
 			const hostileSquares = (neighbor.isHostile ? 1 : 0) + neighbor.hostileNeighbors().length;
-			return -hostileSquares
-			// const friendlySquares = neighbor.isMineNeighbors().length
-			// return -(hostileSquares - friendlySquares)
+			const friendlySquares = neighbor.isMineNeighbors().length
+			return -(hostileSquares - friendlySquares)
 		})
 	}
 
-	// isMineNeighbors(){
-	// 	return _.filter(this.neighbors(), function(neighbor){
-	// 		return neighbor.isMine && (neighbor.strength>20 || neighbor.willBeMovedHere.length)
-	// 	})
-	// }
+	// not exactly correct
+	isMineNeighbors(){
+		return _.filter(this.neighbors(), function(neighbor){
+			return (neighbor.isMine && neighbor.strength>20) || neighbor.willBeMovedHere.length)
+		})
+	}
 
 	hostileNeighbors(){
 		return _.filter(this.neighbors(), function(neighbor){
@@ -96,19 +114,7 @@ class Site {
 
 
 	getWaste(targetSite){
-		const addedStrength = _.reduce(targetSite.willBeMovedHere, function(strength, movedSite){
-			return strength+movedSite.strength
-		}, this.strength)
-
-		if(targetSite.isMine){
-			if(targetSite.moved){
-				return addedStrength + targetSite.strength - 255
-			}
-			return addedStrength + targetSite.strength - 255;
-		}else{
-			return addedStrength + targetSite.strength - 255;
-		}
-
+		return this.strength + targetSite.expectedStrength()-255;
 	}
 
 
