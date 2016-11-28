@@ -1,4 +1,5 @@
 const _ = require('lodash')
+const log = require('./log.js')
 
 class Site {
 
@@ -11,7 +12,7 @@ class Site {
 			isHostile: !this.isMine && this.owner>0,
 			isNeutral: this.owner===0,
 			willBeMovedHere: [],
-			willBeVacated: false,
+			moved: false,
 			fronts: {
 				north: {
 					key: 'north',
@@ -51,11 +52,20 @@ class Site {
 		return frontsByEfficiency;
 	}
 
-	neighborsByHostility(){
+	neighborsByAdjacentHostilesCount(){
 		return _.sortBy(this.neighbors(), function(neighbor){
-			return -(neighbor.hostileNeighbors().length + (neighbor.isHostile ? 1 : 0))
+			const hostileSquares = (neighbor.isHostile ? 1 : 0) + neighbor.hostileNeighbors().length;
+			return -hostileSquares
+			// const friendlySquares = neighbor.isMineNeighbors().length
+			// return -(hostileSquares - friendlySquares)
 		})
 	}
+
+	// isMineNeighbors(){
+	// 	return _.filter(this.neighbors(), function(neighbor){
+	// 		return neighbor.isMine && (neighbor.strength>20 || neighbor.willBeMovedHere.length)
+	// 	})
+	// }
 
 	hostileNeighbors(){
 		return _.filter(this.neighbors(), function(neighbor){
@@ -63,8 +73,18 @@ class Site {
 		})
 	}
 
-	moveTo(site){
-		const direction = _.indexOf(this.neighbors(), site)+1
+	moveTo(targetSite){
+		if(this.moved){
+			log('already moved')
+			return;
+		}
+		targetSite.willBeMovedHere.push(this);
+		this.moved = true;
+		const direction = _.indexOf(this.neighbors(), targetSite)+1
+		if(!direction){
+			log('should have dir')
+			return;
+		}
 		return {
 			loc: {
 				x: this.x,
@@ -73,6 +93,24 @@ class Site {
 			direction: direction || 0
 		}
 	}
+
+
+	getWaste(targetSite){
+		const addedStrength = _.reduce(targetSite.willBeMovedHere, function(strength, movedSite){
+			return strength+movedSite.strength
+		}, this.strength)
+
+		if(targetSite.isMine){
+			if(targetSite.moved){
+				return addedStrength + targetSite.strength - 255
+			}
+			return addedStrength + targetSite.strength - 255;
+		}else{
+			return addedStrength + targetSite.strength - 255;
+		}
+
+	}
+
 
 	// bfTraverse(iteratee, levels=1, visited={}){
 	// 	if(levels<=0){
@@ -101,10 +139,10 @@ class Site {
 
 	neighbors(){
 		return [
-			this.neighbor('north'),
-			this.neighbor('east'),
-			this.neighbor('south'),
-			this.neighbor('west'),
+		this.neighbor('north'),
+		this.neighbor('east'),
+		this.neighbor('south'),
+		this.neighbor('west'),
 		]
 	}
 

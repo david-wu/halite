@@ -1,14 +1,10 @@
-const _ = require('lodash')
+asdfwconst _ = require('lodash')
 
 // Prevents tiles from going over 250
 class Coordinator{
 
   constructor(options){
     _.extend(this, options);
-  }
-
-  reset(gameMap){
-    this.gameMap = gameMap;
   }
 
   declareMove(site, targetSite){
@@ -22,13 +18,13 @@ class Coordinator{
     }, site.strength)
 
     if(targetSite.willBeVacated){
-      return addedStrength-250
+      return addedStrength-255
     }
 
     if(targetSite.isMine){
-      return (addedStrength + targetSite.strength)-250;
+      return (addedStrength + targetSite.strength)-255;
     }else{
-      return addedStrength-250;
+      return addedStrength-255;
     }
 
   }

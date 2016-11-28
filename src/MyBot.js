@@ -8,93 +8,34 @@ const log = require('./log.js')
 
 
 const constants = {
-  // If combining tiles will waste this much, don't move
-  maxWaste: 20,
   // Tiles with 0 production still have some value (allows getting to tiles with production)
   baseTileValue: 2,
-  // Don't move unless strength is big enough
-  minFarmTime: 3,
 }
 
 
-const Coordinator = require('./Coordinator.js');
-const coordinator = new Coordinator();
-
+const {WarChief, EconChief} = require('./Chiefs.js')
+const warChief = new WarChief();
+const econChief = new EconChief();
 
 let turnCount = 0;
 network.on('map', function(gameMap){
   turnCount++;
-  coordinator.reset(gameMap);
-  const moves = getMoves(gameMap, coordinator, turnCount);
-  network.sendMoves(moves);
-});
-
-
-
-function getMoves(gameMap, coordinator, turnCount){
-  const moves = [];
 
   setSiteFronts(gameMap);
+  warChief.reset(gameMap, turnCount);
+  econChief.reset(gameMap, turnCount);
 
   gameMap.eachMySites(function(site){
-    if(site.strength === 0){return;}
-
-
-    // const hostileFront = _.find(site.fronts, 'hostile');
-    const hostileFronts = _.sortBy(site.fronts, 'distanceToHostile');
-    const closestHostileFront = hostileFronts[0]
-
-    if(closestHostileFront.distanceToHostile<=2){
-
-
-      // getCommandMove();
-
-      _.each(site.neighborsByHostility(), function(targetSite){
-        if(coordinator.getWastedStrength(site, targetSite) > constants.maxWaste){
-          return;
-        }
-
-        if(!targetSite.hostileNeighbors().length){
-          targetSite = closestHostileFront.site
-        }
-        coordinator.declareMove(site, targetSite)
-        moves.push(site.moveTo(targetSite));
-        return false;
-      })
-
-    }else{
-      if(site.strength < constants.minFarmTime*site.production){return}
-
-      _.each(site.frontsByEfficiency(), function(front){
-
-        if(!front.canCapture){
-          return false;
-        }
-
-        const targetSite = gameMap.getSite(site, front.index);
-
-        const wastedStrength = coordinator.getWastedStrength(site, targetSite);
-        if(wastedStrength > constants.maxWaste){
-          return site.strength > 100 ? undefined : false;
-        }
-
-        // wait for longer production if already being captured
-        if(front.strength < front.productionTo+front.strengthTo-site.strength && site.strength<site.production*8) {
-          return;
-        }
-
-        coordinator.declareMove(site, targetSite)
-        moves.push(site.moveTo(targetSite));
-        return false;
-
-      })
-    }
-
+    if(site.strength===0){return}
+    if(warChief.addSite(site)){return}
+    if(econChief.addSite(site)){return}
   })
 
-  return moves;
-}
-
+  const moves = [];
+  warChief.getMoves(moves);
+  econChief.getMoves(moves);
+  network.sendMoves(moves);
+});
 
 
 function setFrontState(front={}, site={}){
@@ -135,7 +76,6 @@ function setFrontCanCapture(front, site){
   const strengthAtFront = front.productionTo+front.strengthTo;
   front.canCapture = strengthAtFront > front.strength;
 }
-
 function setFrontDistanceToHostile(front, site){
     // If site is undefined (init) or 0, and strength>0
     if(!site.owner && site.strength>0){

@@ -33,13 +33,8 @@ const inspect = require('util').inspect;
 
 if(__dirname){
 
-  const log = function(text){
+  function log(text){
     return new Promise(function(resolve, reject){
-      text = inspect(text)
-
-      // if(typeof text === 'object'){
-      //   text = stringify(text, null, '    ');
-      // }
       fs.appendFile(logFilePath, text+'\n', function(err){
         if(err){reject()}
         resolve();
@@ -55,6 +50,7 @@ if(__dirname){
   })
 
   const logSync = function(text){
+    text = inspect(text)
     promise = promise.then(function(){
       log(text)
     })
