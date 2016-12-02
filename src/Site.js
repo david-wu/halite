@@ -52,11 +52,18 @@ class Site {
 		return frontsByEfficiency;
 	}
 
-	// bestCombatNeighbors(){
-	// 	return _.sortBy(this.neighbors(), function(neighbor){
-	// 		return neighbor.expectedStrength();
-	// 	})
-	// }
+	setClosestHostileFront(){
+	    const hostileFronts = _.sortBy(this.fronts, 'distanceToHostile');
+	    this.closestHostileFront = hostileFronts[0];
+	    return this.closestHostileFront;
+	}
+
+	isInCommandZone(){
+	    this.setClosestHostileFront();
+	    if(this.closestHostileFront.distanceToHostile<=3){
+	      return true;
+	    }
+	}
 
 	expectedStrength(){
 		const addedStrength = _.reduce(this.willBeMovedHere, function(strength, movedSite){
@@ -81,7 +88,8 @@ class Site {
 	// not exactly correct
 	isMineNeighbors(){
 		return _.filter(this.neighbors(), function(neighbor){
-			return (neighbor.isMine && neighbor.strength>20) || neighbor.willBeMovedHere.length;
+			return neighbor.isMine
+			// return (neighbor.isMine && neighbor.strength>20) || neighbor.willBeMovedHere.length;
 		})
 	}
 
@@ -113,29 +121,14 @@ class Site {
 	}
 
 
+	// Assuming targetSite is moved away and nothing new moves onto it
+	getMinWaste(targetSite){
+		return this.getWaste(targetSite)-targetSite.strength;
+	}
+
 	getWaste(targetSite){
 		return this.strength + targetSite.expectedStrength()-255;
 	}
-
-
-	// bfTraverse(iteratee, levels=1, visited={}){
-	// 	if(levels<=0){
-	// 		return;
-	// 	}
-	// 	_.set(visited, this.pos(), true)
-
-	// 	const stack = [];
-	// 	_.each(this.neighbors(), function(neighbor){
-	// 		if(_.get(visited, neighbor.pos())){return}
-	// 		iteratee(neighbor)
-	// 		_.set(visited, neighbor.pos(), true)
-	// 		stack.push(neighbor)
-	// 	})
-
-	// 	_.each(stack, function(neighbor){
-	// 		neighbor.bfTraverse(iteratee, levels-1, visited);
-	// 	})
-	// }
 
 	eachNeighbor(iteratee){
 		_.each(this.neighbors(), function(neighbor){

@@ -27,13 +27,15 @@ network.on('map', function(gameMap){
 
   gameMap.eachMySites(function(site){
     if(site.strength===0){return}
-    if(warChief.addSite(site)){return}
-    if(econChief.addSite(site)){return}
+    site.inCommandZone = site.isInCommandZone();
+    warChief.addSite(site);
+    // if(warChief.addSite(site)){return}
+    // if(econChief.addSite(site)){return}
   })
 
   const moves = [];
   warChief.getMoves(moves);
-  econChief.getMoves(moves);
+  // econChief.getMoves(moves);
   network.sendMoves(moves);
 });
 
