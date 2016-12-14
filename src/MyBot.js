@@ -35,23 +35,27 @@ network.on('map', function(gameMap){
 });
 
 
+const maxStrengthVision = 100;
+
 function setFrontState(front={}, site={}){
     setFrontBaseStats(front, site)
     setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
     setFrontDistanceToHostile(front, site)
-    front.lastSite = site;
+    // front.lastSite = site;
     return front;
 }
 function setFrontBaseStats(front, site){
     if(site.isMine){
-      front.productionTo += (site.production*front.distanceTo)
-      front.distanceTo += 1
+      front.producedOnTheWay += front.productionTo
+      front.productionTo += site.production
       front.strengthTo += site.strength
+      front.distanceTo += 1
     }else{
+      front.producedOnTheWay = 0;
       front.productionTo = 0
-      front.distanceTo = 0
       front.strengthTo = 0
+      front.distanceTo = 0
 
       front.site = site
       front.strength = site.strength
@@ -71,7 +75,11 @@ function setFrontCanCapture(front, site){
   if(site.isHostile){
     return front.canCapture = true
   }
-  const strengthAtFront = front.productionTo+front.strengthTo
+  const strengthAtFront = front.producedOnTheWay + front.strengthTo
+
+  // If front could already be captured on the previous site
+  front.alreadyCanCapture = front.canCapture
+
   front.canCapture = strengthAtFront > front.strength
 }
 function setFrontDistanceToHostile(front, site){
@@ -100,6 +108,7 @@ function setFrontDistanceToHostile(front, site){
 
 const defaultFrontState = {
   productionTo: 0,
+  producedOnTheWay: 0,
   distanceTo: Infinity,
   strengthTo: 0,
   site: undefined,

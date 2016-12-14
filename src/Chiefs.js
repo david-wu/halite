@@ -75,7 +75,7 @@ class Chief{
           return false;
         }
         // consider other options if front is already being captured and site is too small
-        if(front.strength<front.productionTo+front.strengthTo-site.strength && site.isSmall(8)){
+        if(front.alreadyCanCapture && site.isSmall(8)){
           return;
         }
       }
