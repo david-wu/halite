@@ -45,42 +45,43 @@ function setFrontState(front={}, site={}){
 }
 function setFrontBaseStats(front, site){
     if(site.isMine){
-      front.productionTo += (site.production*front.distanceTo);
-      front.distanceTo += 1;
-      front.strengthTo += site.strength;
+      front.productionTo += (site.production*front.distanceTo)
+      front.distanceTo += 1
+      front.strengthTo += site.strength
     }else{
+      front.productionTo = 0
       front.distanceTo = 0
       front.strengthTo = 0
-      front.productionTo = 0
-      front.strength = _.isUndefined(site.strength) ? Infinity : site.strength;
-      front.production = site.production || 0
+
+      front.site = site
+      front.strength = site.strength
+      front.production = site.production
       front.pos = {
         x: site.x,
         y: site.y,
       }
-      front.site = site;
     }
 }
 function setFrontEfficiency(front, site){
   const tileValue = front.production + constants.baseTileValue
   const tileCost = front.strength + Math.pow(front.distanceTo, 2)
-  front.efficiency = tileValue/tileCost;
+  front.efficiency = tileValue/tileCost
 }
 function setFrontCanCapture(front, site){
   if(site.isHostile){
-    return true;
+    return front.canCapture = true
   }
-  const strengthAtFront = front.productionTo+front.strengthTo;
-  front.canCapture = strengthAtFront > front.strength;
+  const strengthAtFront = front.productionTo+front.strengthTo
+  front.canCapture = strengthAtFront > front.strength
 }
 function setFrontDistanceToHostile(front, site){
     // If site is undefined (init) or 0, and strength>0
     if(!site.owner && site.strength>0){
-      front.distanceToHostile = Infinity;
+      front.distanceToHostile = Infinity
       return;
     }
     if(site.isHostile){
-      front.distanceToHostile = 0;
+      front.distanceToHostile = 0
       return;
     }
 
@@ -96,32 +97,40 @@ function setFrontDistanceToHostile(front, site){
 
 }
 
-// Double Iteration on all squares
-// First loop sets gray square Location
-// Second lop sets distance to gray square
+
+const defaultFrontState = {
+  productionTo: 0,
+  distanceTo: Infinity,
+  strengthTo: 0,
+  site: undefined,
+  strength: Infinity,
+  production: 0
+};
+
 function setSiteFronts(gameMap){
   setXFronts(gameMap);
   setYFronts(gameMap);
 }
 
+// Double loop in all directions
+// First loop sets closest gray square Location (if any)
+// Second lop sets distance to gray square
 function setXFronts(gameMap){
   let site;
   const doubleHeight = gameMap.height*2;
   const doubleWidth = gameMap.width*2;
 
-  const frontState = setFrontState();
+  let frontState;
   for(let y=0; y<doubleHeight; y++){
 
-    setFrontState(frontState);
-    frontState.distanceTo = Infinity;
+    frontState = _.clone(defaultFrontState);
     for(let x=0; x<doubleWidth; x++){
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
       _.extend(site.fronts.west, frontState);
     }
 
-    setFrontState(frontState);
-    frontState.distanceTo = Infinity;
+    frontState = _.clone(defaultFrontState);
     for (let x = doubleWidth-1; x>=0; x--) {
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
@@ -135,19 +144,17 @@ function setYFronts(gameMap){
   const doubleHeight = gameMap.height*2;
   const doubleWidth = gameMap.width*2;
 
-  const frontState = setFrontState();
+  let frontState;
   for(let x=0; x<doubleHeight; x++){
 
-    setFrontState(frontState);
-    frontState.distanceTo = Infinity;
+    frontState = _.clone(defaultFrontState);
     for(let y=0; y<doubleWidth; y++){
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);
       _.extend(site.fronts.north, frontState);
     }
 
-    setFrontState(frontState);
-    frontState.distanceTo = Infinity;
+    frontState = _.clone(defaultFrontState);
     for (let y = doubleWidth-1; y>=0; y--) {
       site = gameMap.getSite({x,y});
       setFrontState(frontState, site);

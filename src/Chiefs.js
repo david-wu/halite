@@ -66,7 +66,7 @@ class Chief{
   }
 
   getEconomicMove(site, moves=[]){
-    let targetFronts = site.trimMoves(site.frontsByEfficiency());
+    let targetFronts = site.frontsByEfficiency();
 
     _.each(targetFronts, (front)=>{
 
