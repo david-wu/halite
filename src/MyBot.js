@@ -47,11 +47,13 @@ function setFrontState(front={}, site={}){
 }
 function setFrontBaseStats(front, site){
     if(site.isMine){
+      front.productionLostOnTheWay += front.production;
       front.producedOnTheWay += front.productionTo
       front.productionTo += site.production
       front.strengthTo += site.strength
       front.distanceTo += 1
     }else{
+      front.productionLostOnTheWay = 0;
       front.producedOnTheWay = 0;
       front.productionTo = 0
       front.strengthTo = 0
@@ -68,7 +70,7 @@ function setFrontBaseStats(front, site){
 }
 function setFrontEfficiency(front, site){
   const tileValue = front.production + constants.baseTileValue
-  const tileCost = front.strength + Math.pow(front.distanceTo, 2)
+  const tileCost = front.strength + front.productionLostOnTheWay
   front.efficiency = tileValue/tileCost
 }
 function setFrontCanCapture(front, site){
