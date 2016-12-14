@@ -27,75 +27,78 @@ class Chief{
 
 
   getMove(site, moves){
-    if(site.isInCommandZone()){
+    if(!site.isMine){return;}
+    if(site.inCommandZone){
       this.getMilitaryMove(site, moves)
     }else{
-      this.getEconomicMove(site, moves);
+      this.getEconomicMove(site, moves)
     }
   }
 
 
   getMilitaryMove(site, moves=[]){
-    if(site.moved){return;}
-    if(site.strength < minFarmTime*site.production){return}
+    let targetSites = site.trimMoves(site.neighborsByHostility());
 
-    _.each(site.neighborsByAdjacentHostilesCount(), (targetSite)=>{
+    _.each(targetSites, (targetSite)=>{
 
       if(!targetSite.hostileNeighbors().length){
         targetSite = site.neighbor(site.closestHostileFront.key);
       }
 
-      // TODO: remove duplicate
-      if(site.getWaste(targetSite) - targetSite.strength > maxWaste){return;}
-      if(site.getWaste(targetSite) > maxWaste){
-        if(targetSite.moved){
-          return;
-        }
-        targetSite.mustMove = true;
-        this.getMove(targetSite, moves);
-        if(!targetSite.moved){
-          return;
-        }
+      // TODO: remove duplicate block
+      var expectedWaste = site.getWaste(targetSite)
+      if(expectedWaste - targetSite.strength > 0){return}
+      // Try to continue this move by pushing targetSite
+      if(expectedWaste > 0){
+        if(targetSite.moved){return}
+        // prevent 2 sites from endlessly pushing each other
+        if(targetSite.pushedBy===site){return}
+        targetSite.pushedBy = site
+        this.getMove(targetSite, moves)
+        // failed to push targetSite, discontinue move
+        if(!targetSite.moved){return}
       }
+      site.moveTo(targetSite, moves)
+      return false
+      // TODO: remove duplicate block
 
-      moves.push(site.moveTo(targetSite));
-      return false;
     })
-    return site.moved;
   }
 
   getEconomicMove(site, moves=[]){
-    if(site.moved){return;}
-    if(!site.mustMove && site.strength<minFarmTime*site.production){return}
+    let targetFronts = site.trimMoves(site.frontsByEfficiency());
 
-    _.each(site.frontsByEfficiency(), (front)=>{
+    _.each(targetFronts, (front)=>{
 
-      if(!site.mustMove && !front.canCapture){
-        return false;
-      }
-
-      // wait for longer production if already being captured
-      if(!site.mustMove && front.strength < front.productionTo+front.strengthTo-site.strength && site.strength<site.production*8) {
-        return;
-      }
-
-      const targetSite = site.neighbor(front.key)
-
-      // TODO: remove duplicate
-      if(site.getWaste(targetSite) - targetSite.strength > maxWaste){return;}
-      if(site.getWaste(targetSite) > maxWaste){
-        if(targetSite.moved){
-          return;
+      if(!site.pushedBy){
+        if(!front.canCapture){
+          return false;
         }
-        targetSite.mustMove = true;
-        this.getMove(targetSite, moves);
-        if(!targetSite.moved){
+        // consider other options if front is already being captured and site is too small
+        if(front.strength<front.productionTo+front.strengthTo-site.strength && site.isSmall(8)){
           return;
         }
       }
 
-      moves.push(site.moveTo(targetSite));
-      return false;
+      const targetSite = site.neighbor(front.key);
+
+      // TODO: remove duplicate block
+      var expectedWaste = site.getWaste(targetSite)
+      if(expectedWaste - targetSite.strength > 0){return}
+      // Try to continue this move by pushing targetSite
+      if(expectedWaste > 0){
+        if(targetSite.moved){return}
+        // prevent 2 sites from endlessly pushing each other
+        if(targetSite.pushedBy===site){return}
+        targetSite.pushedBy = site
+        this.getMove(targetSite, moves)
+        // failed to push targetSite, discontinue move
+        if(!targetSite.moved){return}
+      }
+      site.moveTo(targetSite, moves)
+      return false
+      // TODO: remove duplicate block
+
     })
   }
 
@@ -107,49 +110,4 @@ class Chief{
 
 }
 
-
-class WarChief extends Chief{
-
-  constructor(options){
-    super(options)
-  }
-
-  // addSite(site){
-  //   const hostileFronts = _.sortBy(site.fronts, 'distanceToHostile');
-  //   site.closestHostileFront = hostileFronts[0]
-
-  //   if(site.closestHostileFront.distanceToHostile<=3){
-  //     this.sites.push(site);
-  //     return true;
-  //   }
-  // }
-
-  // getMoves(moves=[]){
-  //   _.each(this.sites, (site)=>{
-  //     this.getMove(site, moves);
-  //   })
-  //   return moves;
-  // }
-
-}
-
-
-class EconChief extends Chief{
-
-  constructor(options){
-    super(options)
-  }
-
-  // getMoves(moves=[]){
-  //   _.each(this.sites, (site)=>{
-  //     this.getEconomicMove(site, moves);
-  //   })
-  //   return moves;
-  // }
-
-}
-
-module.exports = {
-  WarChief,
-  EconChief,
-}
+module.exports = Chief;

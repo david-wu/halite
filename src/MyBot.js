@@ -13,29 +13,24 @@ const constants = {
 }
 
 
-const {WarChief, EconChief} = require('./Chiefs.js')
-const warChief = new WarChief();
-const econChief = new EconChief();
+const Chief = require('./Chiefs.js')
+const chief = new Chief();
 
 let turnCount = 0;
 network.on('map', function(gameMap){
   turnCount++;
 
   setSiteFronts(gameMap);
-  warChief.reset(gameMap, turnCount);
-  econChief.reset(gameMap, turnCount);
+  chief.reset(gameMap, turnCount);
 
   gameMap.eachMySites(function(site){
     if(site.strength===0){return}
     site.inCommandZone = site.isInCommandZone();
-    warChief.addSite(site);
-    // if(warChief.addSite(site)){return}
-    // if(econChief.addSite(site)){return}
+    chief.addSite(site);
   })
 
   const moves = [];
-  warChief.getMoves(moves);
-  // econChief.getMoves(moves);
+  chief.getMoves(moves);
   network.sendMoves(moves);
 });
 

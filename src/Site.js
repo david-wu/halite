@@ -38,6 +38,23 @@ class Site {
 		})
 	}
 
+	// Of 4 possible moves
+	trimMoves(moves){
+	    if(this.moved){
+	    	moves.length = 0;
+	    	return moves;
+	    }
+	    if(this.isSmall() && !this.mustMove){
+	    	moves.length = 0;
+	    	return moves;
+		}
+		if(!this.mustMove){
+			moves.length = 2;
+			return moves;
+		}
+		return moves;
+	}
+
 	frontsByEfficiency(){
 		const frontsByEfficiency = _.sortBy(this.fronts, function(front){
 			return -front.efficiency;
@@ -58,31 +75,56 @@ class Site {
 	    return this.closestHostileFront;
 	}
 
+	// smaller than minFarmTime
+	isSmall(minFarmTime=3){
+		return this.strength < minFarmTime*this.production;
+	}
+
 	isInCommandZone(){
 	    this.setClosestHostileFront();
-	    if(this.closestHostileFront.distanceToHostile<=3){
-	      return true;
-	    }
+	    return this.closestHostileFront.distanceToHostile<=3
 	}
 
 	expectedStrength(){
 		const addedStrength = _.reduce(this.willBeMovedHere, function(strength, movedSite){
 			return strength+movedSite.strength
-		}, this.strength)
+		}, 0)
 
-		if(!this.isMine || this.moved){
+		if(!this.isMine){
 			return addedStrength - this.strength;
-		}else{
+		}
+		if(this.moved){
 			return addedStrength;
 		}
+		return addedStrength + this.strength;
 	}
 
-	neighborsByAdjacentHostilesCount(){
+	neighborsByHostility(){
 		return _.sortBy(this.neighbors(), function(neighbor){
-			const hostileSquares = (neighbor.isHostile ? 1 : 0) + neighbor.hostileNeighbors().length;
-			const friendlySquares = neighbor.isMineNeighbors().length
-			return -(hostileSquares - friendlySquares)
+			return -neighbor.getHostility();
 		})
+	}
+
+	getHostility(){
+		let hostility = 0;
+
+		if(this.isHostile){
+			hostility+=2
+		}
+		if(this.expectedStrength()>0){
+			hostility-=2
+		}
+
+		_.each(this.neighbors(), function(neighbor){
+			if(neighbor.isHostile){
+				hostility+=1
+			}
+			if(neighbor.expectedStrength()>0){
+				hostility-1
+			}
+		});
+
+		return hostility;
 	}
 
 	// not exactly correct
@@ -99,24 +141,28 @@ class Site {
 		})
 	}
 
-	moveTo(targetSite){
-		if(this.moved){
-			log('already moved')
-			return;
+	moveTo(targetSite, moves=[]){
+
+		const move = this.getMoveTo(targetSite);
+		if(move){
+			moves.push(move);
 		}
+		return move
+	}
+
+	getMoveTo(targetSite){
 		targetSite.willBeMovedHere.push(this);
 		this.moved = true;
-		const direction = _.indexOf(this.neighbors(), targetSite)+1
-		if(!direction){
-			log('should have dir')
-			return;
-		}
+		const directionIndex = _.indexOf(this.neighbors(), targetSite)+1
+
+		if(!directionIndex){throw ('should have direction');}
+
 		return {
 			loc: {
 				x: this.x,
 				y: this.y,
 			},
-			direction: direction || 0
+			direction: directionIndex || 0
 		}
 	}
 

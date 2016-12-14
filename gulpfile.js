@@ -16,7 +16,7 @@ gulp.task('default', ['build', 'clean'], gulpShell.task([
 ]));
 
 gulp.task('build', ['clean'], function(){
-	return appPack()
+	return botPack()
 	    .pipe(gulp.dest(configs.dist));
 });
 
@@ -32,7 +32,7 @@ gulp.task('cleanHlts', function(){
 		.pipe(gulpClean());
 })
 
-function appPack(){
+function botPack(){
 	const webpackConfig = require('./webpack.config.js');
 	return gulp.src(configs.src)
 		.pipe(webpack(webpackConfig));
