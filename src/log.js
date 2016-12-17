@@ -52,7 +52,7 @@ if(__dirname){
   const logSync = function(text){
     text = inspect(text)
     promise = promise.then(function(){
-      log(text)
+      return log(text)
     })
   }
   module.exports = logSync

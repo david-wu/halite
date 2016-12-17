@@ -5,6 +5,7 @@ const Networking = require('./networking');
 
 const network = new Networking('6_1');
 const log = require('./log.js')
+const inspect = require('util').inspect;
 
 
 const constants = {
@@ -35,25 +36,30 @@ network.on('map', function(gameMap){
 });
 
 
-const maxStrengthVision = 100;
+// const maxStrengthVision = 100;
 
-function setFrontState(front={}, site={}){
+function setFrontState(front={}, site={}, direction){
+    front.path.push(site);
+
     setFrontBaseStats(front, site)
     setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
     setFrontDistanceToHostile(front, site)
-    // front.lastSite = site;
+
+    _.extend(site.fronts[direction], front)
+    overrideFront(front, site)
+
     return front;
 }
 function setFrontBaseStats(front, site){
     if(site.isMine){
-      front.productionLostOnTheWay += front.production;
+      front.frontProductionLostOnTheWay += front.production;
       front.producedOnTheWay += front.productionTo
       front.productionTo += site.production
       front.strengthTo += site.strength
       front.distanceTo += 1
     }else{
-      front.productionLostOnTheWay = 0;
+      front.frontProductionLostOnTheWay = 0;
       front.producedOnTheWay = 0;
       front.productionTo = 0
       front.strengthTo = 0
@@ -62,19 +68,26 @@ function setFrontBaseStats(front, site){
       front.site = site
       front.strength = site.strength
       front.production = site.production
-      front.pos = {
-        x: site.x,
-        y: site.y,
-      }
     }
 }
 function setFrontEfficiency(front, site){
-  const tileValue = front.production + constants.baseTileValue
-  const tileCost = front.strength + front.productionLostOnTheWay
-  front.efficiency = tileValue/tileCost
+  if(!site.isMine){return;}
+  const frontValue = front.production + constants.baseTileValue
+  const frontCost = front.strength + front.productionTo + front.frontProductionLostOnTheWay
+  front.efficiency = frontValue/frontCost
 }
+
+function overrideFront(front, site){
+  if(!site.isMine){return;}
+  if(!site.mostEfficientFront || front.efficiency > site.mostEfficientFront.efficiency){
+    site.mostEfficientFront = _.clone(front);
+  }else{
+    _.extend(front, site.mostEfficientFront);
+  }
+}
+
 function setFrontCanCapture(front, site){
-  if(site.isHostile){
+  if(front.site && front.site.isHostile){
     return front.canCapture = true
   }
   const strengthAtFront = front.producedOnTheWay + front.strengthTo
@@ -102,23 +115,23 @@ function setFrontDistanceToHostile(front, site){
     const closestDistanceToHostile = mostHostileFront.distanceToHostile
     if(closestDistanceToHostile && front.distanceToHostile>closestDistanceToHostile){
       front.closestDistanceToHostile = closestDistanceToHostile;
-      // front.distanceToHostile = site.distanceToHostile;
     }
 
 }
 
 
 const defaultFrontState = {
-  productionTo: 0,
+  frontProductionLostOnTheWay: 0,
   producedOnTheWay: 0,
-  distanceTo: Infinity,
+  productionTo: 0,
   strengthTo: 0,
-  site: undefined,
-  strength: Infinity,
-  production: 0
+  distanceTo: Infinity,
+  path: [],
 };
 
 function setSiteFronts(gameMap){
+  setXFronts(gameMap);
+  setYFronts(gameMap);
   setXFronts(gameMap);
   setYFronts(gameMap);
 }
@@ -128,24 +141,21 @@ function setSiteFronts(gameMap){
 // Second lop sets distance to gray square
 function setXFronts(gameMap){
   let site;
-  const doubleHeight = gameMap.height*2;
   const doubleWidth = gameMap.width*2;
 
   let frontState;
-  for(let y=0; y<doubleHeight; y++){
+  for(let y=0; y<gameMap.height; y++){
 
     frontState = _.clone(defaultFrontState);
     for(let x=0; x<doubleWidth; x++){
       site = gameMap.getSite({x,y});
-      setFrontState(frontState, site);
-      _.extend(site.fronts.west, frontState);
+      setFrontState(frontState, site, 'west');
     }
 
     frontState = _.clone(defaultFrontState);
-    for (let x = doubleWidth-1; x>=0; x--) {
+    for(let x=doubleWidth-1; x>=0; x--){
       site = gameMap.getSite({x,y});
-      setFrontState(frontState, site);
-      _.extend(site.fronts.east, frontState);
+      setFrontState(frontState, site, 'east');
     }
   }
 }
@@ -153,23 +163,20 @@ function setXFronts(gameMap){
 function setYFronts(gameMap){
   let site;
   const doubleHeight = gameMap.height*2;
-  const doubleWidth = gameMap.width*2;
 
   let frontState;
-  for(let x=0; x<doubleHeight; x++){
+  for(let x=0; x<gameMap.width; x++){
 
     frontState = _.clone(defaultFrontState);
-    for(let y=0; y<doubleWidth; y++){
+    for(let y=0; y<doubleHeight; y++){
       site = gameMap.getSite({x,y});
-      setFrontState(frontState, site);
-      _.extend(site.fronts.north, frontState);
+      setFrontState(frontState, site, 'north');
     }
 
     frontState = _.clone(defaultFrontState);
-    for (let y = doubleWidth-1; y>=0; y--) {
+    for(let y=doubleHeight-1; y>=0; y--){
       site = gameMap.getSite({x,y});
-      setFrontState(frontState, site);
-      _.extend(site.fronts.south, frontState);
+      setFrontState(frontState, site, 'south');
     }
   }
 }
