@@ -9,45 +9,45 @@ const inspect = require('util').inspect;
 
 
 const constants = {
-  // Tiles with 0 production still have some value (allows getting to tiles with production)
-  baseTileValue: 2,
+  baseTileValue: 1,
 }
 
 
-const Chief = require('./Chiefs.js')
-const chief = new Chief();
-
 let turnCount = 0;
 network.on('map', function(gameMap){
-  turnCount++;
-
+  setSiteStats(gameMap, turnCount++);
   setSiteFronts(gameMap);
-  chief.reset(gameMap, turnCount);
-
-  gameMap.eachMySites(function(site){
-    if(site.strength===0){return}
-    site.inCommandZone = site.isInCommandZone();
-    chief.addSite(site);
-  })
 
   const moves = [];
-  chief.getMoves(moves);
+  gameMap.eachMySites(function(site){
+    if(site.isSmall(1)){return}
+    site.getMove(moves);
+  })
+
   network.sendMoves(moves);
 });
 
+function setSiteStats(gameMap, seed){
+  gameMap.eachSite(function(site, x, y){
+      site.number = seed+x+y;
+  })
+}
 
-// const maxStrengthVision = 100;
+function setSiteFronts(gameMap){
+  _.times(8, function(){
+    setXFronts(gameMap);
+    setYFronts(gameMap);
+  })
+}
 
 function setFrontState(front={}, site={}, direction){
-    front.path.push(site);
-
     setFrontBaseStats(front, site)
-    setFrontEfficiency(front, site)
     setFrontCanCapture(front, site)
     setFrontDistanceToHostile(front, site)
-
+    setFrontEfficiency(front, site)
     _.extend(site.fronts[direction], front)
-    overrideFront(front, site)
+
+    setToMostEfficientFront(front, site)
 
     return front;
 }
@@ -69,54 +69,53 @@ function setFrontBaseStats(front, site){
       front.strength = site.strength
       front.production = site.production
     }
+
+    front.strengthOnArrival = front.strengthTo + front.producedOnTheWay;
 }
+function setFrontCanCapture(front, site){
+  if(!front.site){
+    return front.canCapture = false;
+  }
+  if(front.site.isHostile){
+    return front.canCapture = true
+  }
+
+  front.canCapture = front.strengthOnArrival > front.strength
+  front.alreadyCanCapture = (front.strengthOnArrival-site.strength) > front.strength
+}
+
+function setFrontDistanceToHostile(front, site){
+    if(site.isHostile){
+      front.distanceToHostile = 0
+    }else{
+      front.distanceToHostile++;
+    }
+
+    if(_.isUndefined(site.distanceToHostile) || front.distanceToHostile<site.distanceToHostile){
+      site.distanceToHostile = front.distanceToHostile
+    }else{
+      front.distanceToHostile = site.distanceToHostile
+    }
+}
+
 function setFrontEfficiency(front, site){
   if(!site.isMine){return;}
+
   const frontValue = front.production + constants.baseTileValue
-  const frontCost = front.strength + front.productionTo + front.frontProductionLostOnTheWay
+
+  const pressureToStayLocal = 0;
+  const frontCost = front.strength + front.productionTo + front.frontProductionLostOnTheWay + pressureToStayLocal
   front.efficiency = frontValue/frontCost
 }
 
-function overrideFront(front, site){
+function setToMostEfficientFront(front, site){
   if(!site.isMine){return;}
-  if(!site.mostEfficientFront || front.efficiency > site.mostEfficientFront.efficiency){
+  // if(front.alreadyCanCapture){return;}
+  if(!site.mostEfficientFront || front.efficiency>site.mostEfficientFront.efficiency){
     site.mostEfficientFront = _.clone(front);
   }else{
     _.extend(front, site.mostEfficientFront);
   }
-}
-
-function setFrontCanCapture(front, site){
-  if(front.site && front.site.isHostile){
-    return front.canCapture = true
-  }
-  const strengthAtFront = front.producedOnTheWay + front.strengthTo
-
-  // If front could already be captured on the previous site
-  front.alreadyCanCapture = front.canCapture
-
-  front.canCapture = strengthAtFront > front.strength
-}
-function setFrontDistanceToHostile(front, site){
-    // If site is undefined (init) or 0, and strength>0
-    if(!site.owner && site.strength>0){
-      front.distanceToHostile = Infinity
-      return;
-    }
-    if(site.isHostile){
-      front.distanceToHostile = 0
-      return;
-    }
-
-    front.distanceToHostile++;
-    const mostHostileFront = _.minBy(site.fronts, 'distanceToHostile')
-    if(!mostHostileFront){return;}
-
-    const closestDistanceToHostile = mostHostileFront.distanceToHostile
-    if(closestDistanceToHostile && front.distanceToHostile>closestDistanceToHostile){
-      front.closestDistanceToHostile = closestDistanceToHostile;
-    }
-
 }
 
 
@@ -126,15 +125,10 @@ const defaultFrontState = {
   productionTo: 0,
   strengthTo: 0,
   distanceTo: Infinity,
+  distanceToHostile: Infinity,
+  strengthOnArrival: 0,
   path: [],
 };
-
-function setSiteFronts(gameMap){
-  setXFronts(gameMap);
-  setYFronts(gameMap);
-  setXFronts(gameMap);
-  setYFronts(gameMap);
-}
 
 // Double loop in all directions
 // First loop sets closest gray square Location (if any)
