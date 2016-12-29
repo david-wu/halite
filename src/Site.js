@@ -38,14 +38,19 @@ class Site {
 		})
 	}
 
+	cacheStats(){
+		this.neighbors = this.getNeighbors();
+		this.hostility = this.getHostility();
+	}
+
 	getNeighborsByHostility(){
-		return _.sortBy(this.getNeighbors(), function(neighbor){
-			return neighbor.getHostility();
+		return _.sortBy(this.neighbors, function(neighbor){
+			return neighbor.hostility;
 		})
 	}
 
 	getHostility(){
-		return _.reduce(this.getNeighbors(), function(totalDistance, neighbor){
+		return _.reduce(this.neighbors, function(totalDistance, neighbor){
 			return totalDistance + neighbor.distanceToHostile
 		}, 0)
 	}
@@ -72,10 +77,9 @@ class Site {
 	getMoveTo(targetSite){
 		targetSite.willBeMovedHere.push(this);
 		this.moved = true;
-		const directionIndex = _.indexOf(this.getNeighbors(), targetSite)+1
 
+		const directionIndex = _.indexOf(this.neighbors, targetSite)+1
 		if(!directionIndex){throw ('should have direction');}
-
 		return {
 			loc: {
 				x: this.x,
@@ -121,9 +125,10 @@ class Site {
 				// failed to push targetSite, discontinue move
 				if(!targetSite.moved){return}
 			}
+			// TODO: remove duplicate block
+
 			this.moveTo(targetSite, moves)
 			return false
-			// TODO: remove duplicate block
 		})
 	}
 
@@ -161,9 +166,15 @@ class Site {
 				// failed to push targetSite, discontinue move
 				if(!targetSite.moved){return}
 			}
+			// TODO: remove duplicate block
+
+			if(front.site.beingCaptured){
+				return false;
+			}
+			front.site.beingCaptured = true;
+
 			this.moveTo(targetSite, moves)
 			return false
-			// TODO: remove duplicate block
 		})
   }
 

@@ -11,7 +11,7 @@ const configs = {
 };
 
 
-gulp.task('default', ['build', 'clean'], gulpShell.task([
+gulp.task('default', ['build'], gulpShell.task([
 	'./halite -d "35 35" "node ./src/MyBot.js" "node ./dist/MyBot6_0.js"'
 ]));
 

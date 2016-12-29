@@ -29,18 +29,21 @@ network.on('map', function(gameMap){
 
 function setStatsBefore(gameMap, seed){
 	gameMap.eachSite(function(site, x, y){
-			site.number = seed+x+y;
+		site.number = seed+x+y;
 	})
 }
 
 function setSiteFronts(gameMap){
-	_.times(6, function(){
+	_.times(4, function(){
 		setXFronts(gameMap);
 		setYFronts(gameMap);
 	})
 }
 
 function setStatsAfter(gameMap){
+	gameMap.eachSite(function(site){
+		site.cacheStats();
+	})
 }
 
 function setFrontState(front={}, site={}, direction){
